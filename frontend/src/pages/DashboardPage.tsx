@@ -63,9 +63,9 @@ const DashboardPage = () => {
     return file.category === activeTab;
   });
 
-  const handleStartBackup = async () => {
+ const handleStartBackup = async () => {
     if (files.length === 0) {
-      alert("No files found to backup! Please add files to your Google Drive first.");
+      alert("No files found to backup!");
       return;
     }
 
@@ -79,15 +79,28 @@ const DashboardPage = () => {
           'Authorization': `Bearer ${token}`
         }
       });
-      
-      const data = await response.json();
-      
+
       if (response.ok) {
-        alert(`Backup Successful!\nFile: ${data.filename}\nSize: ${data.size}`);
-        // Redirect to history to see it
+        // 1. Convert response to a Blob (File)
+        const blob = await response.blob();
+        
+        // 2. Create a temporary link to force download
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `DriveSafe_Archive_${new Date().toISOString().slice(0,10)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // 3. Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        alert("Backup Complete! Your ZIP file is downloading, and files are saved to the Repository.");
         window.location.hash = "backup-history";
       } else {
-        alert("Backup Failed: " + data.error);
+        const err = await response.json();
+        alert("Backup Failed: " + err.error);
       }
     } catch (error) {
       console.error("Backup error:", error);

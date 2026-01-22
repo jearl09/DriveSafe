@@ -1,52 +1,107 @@
-# backend/ai_engine.py
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
-from sklearn.pipeline import make_pipeline
+import os
+import shutil
+import re
+import pdfplumber
 
-# 1. TEACH THE BRAIN (Training Data)
-# We teach it patterns: "filename" -> "category"
-training_data = [
-    # Academic / School
-    ("thesis_final.docx", "Academic"),
-    ("capstone_proposal.pdf", "Academic"),
-    ("homework_math.jpg", "Academic"),
-    ("chapter_1_review.docx", "Academic"),
-    ("project_documentation.pdf", "Academic"),
-    ("enrollment_form.pdf", "Academic"),
+def quick_predict_category_by_name(filename):
+    """
+    Very loose guesser to ensure Dashboard never says 'File' or 'Analyzing'.
+    """
+    name = filename.lower()
     
-    # Personal / Photos
-    ("IMG_2025.jpg", "Personal"),
-    ("family_dinner.png", "Personal"),
-    ("boracay_trip.mp4", "Personal"),
-    ("screenshot_123.png", "Personal"),
+    # 1. ACADEMIC KEYWORDS
+    academic_terms = ["srs", "sdd", "spmp", "std", "proposal", "manual", "thesis", "capstone", "documentation", "report", "paper", "project", "chapter"]
+    if any(x in name for x in academic_terms):
+        return "Academic"
+        
+    # 2. ACADEMIC EXTENSIONS (PDFs and Docs are usually academic in this context)
+    if name.endswith(".pdf") or name.endswith(".docx") or name.endswith(".doc"):
+        return "Academic"
+
+    # 3. PERSONAL KEYWORDS
+    personal_terms = ["jpg", "png", "jpeg", "mp4", "mov", "vacation", "party", "family", "screenshot", "img_", "dsc_"]
+    if any(x in name for x in personal_terms):
+        return "Personal"
+
+    # 4. Fallback
+    return "Work"
+
+def scan_file_content(file_path):
+    """
+    Scans PDF content. If it fails, falls back gracefully.
+    """
+    filename = os.path.basename(file_path)
+    text_content = ""
     
-    # Work / Other
-    ("resume_2025.pdf", "Work"),
-    ("budget_plan.xlsx", "Work"),
-    ("invoice_september.pdf", "Work")
-]
+    # Defaults
+    metadata = {
+        "year": "2025-2026", 
+        "team": None, # If None, we won't put it in the folder name
+        "title": "Untitled_Project",
+        "type": "General_Doc"
+    }
 
-# Split into X (Inputs) and y (Labels)
-X_train = [item[0] for item in training_data]
-y_train = [item[1] for item in training_data]
+    # READ PDF
+    if file_path.lower().endswith('.pdf'):
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                for i, page in enumerate(pdf.pages):
+                    if i > 2: break 
+                    text = page.extract_text()
+                    if text: text_content += text + "\n"
+        except Exception:
+            pass # Ignore errors, use defaults
 
-# 2. BUILD THE PIPELINE
-# CountVectorizer: Turns text into numbers
-# MultinomialNB: The AI algorithm (Naive Bayes) that predicts categories
-model = make_pipeline(CountVectorizer(), MultinomialNB())
+    text_lower = text_content.lower()
 
-# 3. TRAIN IT
-model.fit(X_train, y_train)
+    # 1. TYPE
+    if "requirements" in text_lower or "srs" in text_lower: metadata["type"] = "SRS"
+    elif "design" in text_lower or "sdd" in text_lower: metadata["type"] = "SDD"
+    elif "project management" in text_lower or "spmp" in text_lower: metadata["type"] = "SPMP"
+    elif "test" in text_lower or "std" in text_lower: metadata["type"] = "STD"
+    elif "proposal" in text_lower: metadata["type"] = "Proposal"
 
-def predict_category(filename):
-    try:
-        # The model predicts the category based on the filename
-        prediction = model.predict([filename])
-        return prediction[0]
-    except:
-        return "Other"
+    # 2. TITLE (Look for "for [TITLE]")
+    title_match = re.search(r"\bfor\s*\n+\s*([A-Z0-9\s\-_]+)", text_content)
+    if title_match:
+        raw = title_match.group(1).split("Prepared")[0].strip()
+        if len(raw) > 2 and "insert" not in raw.lower():
+            metadata["title"] = raw.replace(" ", "_").upper()
+    else:
+        # Fallback to Filename
+        clean = os.path.splitext(filename)[0]
+        for word in ["SRS", "SDD", "Team", "16", "Group"]:
+            clean = clean.replace(word, "", -1)
+        if len(clean.strip()) > 0:
+            metadata["title"] = clean.strip().replace(" ", "_").upper()
 
-# Test it immediately if you run this file
-if __name__ == "__main__":
-    print(f"Test 'My_Thesis.pdf': {predict_category('My_Thesis.pdf')}")
-    print(f"Test 'Party_Photo.jpg': {predict_category('Party_Photo.jpg')}")
+    # 3. TEAM
+    team_match = re.search(r"(Team|Group)\s?[-#]?\s?(\d+)", text_content, re.IGNORECASE)
+    if team_match:
+        metadata["team"] = f"Team_{team_match.group(2)}"
+
+    return metadata
+
+def move_to_archive(source_path, metadata, base_folder_path):
+    # SMART NAMING: 2026_PROJECT_TITLE (No Team # if not found)
+    folder_name = f"{metadata['year']}_{metadata['title']}"
+    if metadata['team']:
+        folder_name += f"_{metadata['team']}"
+    
+    dest_folder = os.path.join(base_folder_path, folder_name)
+    os.makedirs(dest_folder, exist_ok=True)
+    
+    # INFO.TXT
+    info_path = os.path.join(dest_folder, "project_info.txt")
+    if not os.path.exists(info_path):
+        with open(info_path, "w") as f:
+            f.write(f"Project: {metadata['title']}\n")
+            if metadata['team']: f.write(f"Team: {metadata['team']}\n")
+            f.write(f"Year: {metadata['year']}\n")
+
+    # RENAME FILE: Type_Filename.pdf
+    new_filename = f"{metadata['type']}_{os.path.basename(source_path)}"
+    dest_path = os.path.join(dest_folder, new_filename)
+    
+    shutil.move(source_path, dest_path)
+    return dest_path
