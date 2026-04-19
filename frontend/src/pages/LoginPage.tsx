@@ -21,6 +21,7 @@ const LoginPage = () => {
           headers: {
             'Content-Type': 'application/json',
           },
+          credentials: 'include', // This allows the browser to save the session cookie
           body: JSON.stringify({ code: codeResponse.code }),
         });
 
