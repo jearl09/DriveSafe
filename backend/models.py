@@ -18,7 +18,7 @@ class UploadedProject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     student_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     project_name = db.Column(db.String(200), nullable=False)
-    # NEW: Store links instead of local paths
+    academic_year = db.Column(db.String(50), nullable=True) # NEW: Handle different years
     srs_link = db.Column(db.String(500), nullable=True)
     sdd_link = db.Column(db.String(500), nullable=True)
     status = db.Column(db.String(50), default='pending') 

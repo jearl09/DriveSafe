@@ -21,11 +21,11 @@ else:
         conn.close()
         
         # 2. Use the App Context to recreate it correctly
-        print("Recreating table via SQLAlchemy...")
+        print("Recreating table via SQLAlchemy with academic_year support...")
         with app.app_context():
             db.create_all()
             
-        print("\nSUCCESS: Table 'uploaded_project' now includes 'srs_link' and 'sdd_link'.")
+        print("\nSUCCESS: Table 'uploaded_project' now includes 'academic_year', 'srs_link' and 'sdd_link'.")
         print("Please restart your backend (python backend/app.py) and try again.")
 
     except Exception as e:

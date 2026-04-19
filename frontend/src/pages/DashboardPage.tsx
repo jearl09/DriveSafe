@@ -8,11 +8,13 @@ const DashboardPage = () => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isBackingUp, setIsBackingUp] = useState(false);
-  const [activeTab, setActiveTab] = useState("All");
   const [userRole, setUserRole] = useState<string>("student");
+  
+  // Choice state: 'review' or 'direct'
+  const [importMode, setImportMode] = useState<'review' | 'direct'>('review');
 
-  const [userEmail, setUserEmail] = useState(localStorage.getItem("user_email") || "user@example.com");
-  const [userName, setUserName] = useState(localStorage.getItem("user_name") || "Authenticated via Google");
+  const [userEmail] = useState(localStorage.getItem("user_email") || "user@example.com");
+  const [userName] = useState(localStorage.getItem("user_name") || "Authenticated via Google");
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -43,10 +45,28 @@ const DashboardPage = () => {
     fetchDriveFiles();
   }, []);
 
-  const filteredFiles = files.filter(file => {
-    if (activeTab === "All") return true;
-    return file.category === activeTab;
-  });
+  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const file = e.target.files[0];
+    const formData = new FormData();
+    formData.append('file', file);
+    // Send 'true' if mode is direct
+    formData.append('direct_archive', (importMode === 'direct').toString());
+
+    try {
+        setLoading(true);
+        const response = await axios.post('http://localhost:5000/api/teacher/import-csv', formData, {
+            withCredentials: true,
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        alert(response.data.message);
+        window.location.hash = response.data.redirect;
+    } catch (err: any) {
+        alert("Import failed: " + (err.response?.data?.error || err.message));
+    } finally {
+        setLoading(false);
+    }
+  };
 
   const handleStartBackup = async () => {
     setIsBackingUp(true);
@@ -67,32 +87,6 @@ const DashboardPage = () => {
       alert("Backup Failed");
     } finally {
       setIsBackingUp(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    window.location.hash = "";
-  };
-
-  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-        setLoading(true);
-        await axios.post('http://localhost:5000/api/teacher/import-csv', formData, {
-            withCredentials: true,
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        alert("CSV Processed and files archived successfully!");
-        window.location.hash = "backup-history";
-    } catch (err: any) {
-        alert("Import failed: " + (err.response?.data?.error || err.message));
-    } finally {
-        setLoading(false);
     }
   };
 
@@ -122,7 +116,7 @@ const DashboardPage = () => {
               <div className="dashboard-user-email">{userEmail}</div>
               <div className="dashboard-user-auth">{userName} ({userRole.toUpperCase()})</div>
             </div>
-            <button className="dashboard-logout-btn" onClick={handleLogout}>Logout</button>
+            <button className="dashboard-logout-btn" onClick={() => {localStorage.clear(); window.location.hash=""}}>Logout</button>
           </div>
         </div>
       </header>
@@ -132,14 +126,8 @@ const DashboardPage = () => {
           <div className="dashboard-nav-container">
             <a href="#dashboard" className="dashboard-nav-item active">Dashboard</a>
             <a href="#backup-history" className="dashboard-nav-item">Archive History</a>
-            
-            {/* ROLE-BASED NAVIGATION */}
-            {userRole === 'student' && (
-                <a href="#upload" className="dashboard-nav-item" style={{ color: '#2563eb', fontWeight: 'bold' }}>📤 Upload Project</a>
-            )}
-            {userRole === 'teacher' && (
-                <a href="#review" className="dashboard-nav-item" style={{ color: '#9333ea', fontWeight: 'bold' }}>⚖️ Review Submissions</a>
-            )}
+            {userRole === 'student' && <a href="#upload" className="dashboard-nav-item" style={{ color: '#2563eb', fontWeight: 'bold' }}>📤 Upload Project</a>}
+            {userRole === 'teacher' && <a href="#review" className="dashboard-nav-item" style={{ color: '#9333ea', fontWeight: 'bold' }}>⚖️ Review Submissions</a>}
           </div>
         </div>
       </nav>
@@ -149,12 +137,50 @@ const DashboardPage = () => {
           <div className="dashboard-card">
             <h1 className="dashboard-card-title">Welcome to DriveSafe</h1>
             
-            {/* TEACHER CSV UPLOAD SECTION */}
             {userRole === 'teacher' && (
-                <div style={{ background: '#f5f3ff', padding: '20px', borderRadius: '12px', border: '2px dashed #9333ea', marginBottom: '20px' }}>
-                    <h3 style={{ color: '#7c3aed', marginBottom: '10px' }}>Import Verified Project List (CSV)</h3>
-                    <p style={{ fontSize: '13px', color: '#6d28d9' }}>Upload the Excel/CSV file containing SRS/SDD links to automatically download and archive them.</p>
-                    <input type="file" accept=".csv" onChange={handleCSVImport} style={{ marginTop: '10px' }} />
+                <div style={{ background: '#f5f3ff', padding: '30px', borderRadius: '20px', border: '1px solid #ddd6fe', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                    <div style={{ marginBottom: '20px' }}>
+                        <h3 style={{ color: '#5b21b6', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Batch Import Projects (CSV)</h3>
+                        <p style={{ fontSize: '0.875rem', color: '#7c3aed', marginTop: '4px' }}>Upload a verified list to populate the archival queue.</p>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
+                        {/* MODE SELECTOR */}
+                        <div style={{ display: 'flex', background: '#ede9fe', padding: '4px', borderRadius: '12px' }}>
+                            <button 
+                                onClick={() => setImportMode('review')}
+                                style={{ 
+                                    padding: '8px 16px', borderRadius: '10px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                                    background: importMode === 'review' ? '#fff' : 'transparent',
+                                    color: importMode === 'review' ? '#7c3aed' : '#94a3b8',
+                                    boxShadow: importMode === 'review' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                            >
+                                👀 Send to Review
+                            </button>
+                            <button 
+                                onClick={() => setImportMode('direct')}
+                                style={{ 
+                                    padding: '8px 16px', borderRadius: '10px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
+                                    background: importMode === 'direct' ? '#fff' : 'transparent',
+                                    color: importMode === 'direct' ? '#7c3aed' : '#94a3b8',
+                                    boxShadow: importMode === 'direct' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
+                                }}
+                            >
+                                🚀 Instant Archive
+                            </button>
+                        </div>
+
+                        <div style={{ flex: 1 }}>
+                            <input type="file" accept=".csv" onChange={handleCSVImport} style={{ fontSize: '0.875rem' }} />
+                        </div>
+                    </div>
+                    
+                    <div style={{ marginTop: '15px', padding: '10px 15px', background: '#fff', borderRadius: '8px', border: '1px solid #ddd6fe', fontSize: '0.75rem', color: '#6d28d9' }}>
+                        <strong>Mode Info:</strong> {importMode === 'review' ? 
+                          "Projects will be added to the Review Dashboard for you to verify links before archival." : 
+                          "Files will be downloaded and archived locally immediately after upload."}
+                    </div>
                 </div>
             )}
 
@@ -169,17 +195,9 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            <button 
-              className="btn-start-backup" 
-              onClick={handleStartBackup} 
-              disabled={isBackingUp || loading}
-            >
+            <button className="btn-start-backup" onClick={handleStartBackup} disabled={isBackingUp || loading}>
               {isBackingUp ? "Processing..." : "Archive My Drive Files"}
             </button>
-            
-            <p style={{ marginTop: '20px', fontSize: '12px', color: '#64748b' }}>
-                All files are processed according to RA 10173 Data Privacy Act.
-            </p>
           </div>
         </div>
       </main>
