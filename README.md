@@ -1,97 +1,66 @@
 # DriveSafe: Intelligent Capstone Archival System
 
-DriveSafe is an automated archival system designed for the College of Computer Studies at Cebu Institute of Technology University. It streamlines the submission, review, and local archival of academic projects (SRS/SDD) directly from Google Drive.
+DriveSafe is a specialized archival and tracking system designed for the College of Computer Studies at Cebu Institute of Technology University. It streamlines the transition of academic projects from student cloud storage to a standardized, teacher-verified local repository.
 
-## 🚀 Core Features
+## 🚀 Actual Implemented Modules
 
-- **Google OAuth 2.0:** Secure institutional or personal Google login.
-- **Student Submission:** Direct submission of Google Drive links for SRS and SDD documents.
-- **Teacher Dashboard (IntelliTrack):** 
-    - Batch import projects via CSV.
-    - Live review of submitted document links.
-    - One-click approval and automated local archival.
-- **Automated Archival:** Files are automatically downloaded from Drive and organized into a "Year_Project_Team" folder hierarchy.
-- **AI-Powered Stats:** Built-in AI engine to detect and categorize academic vs personal files.
-- **Data Privacy:** Compliant with RA 10173 (Data Privacy Act of 2012).
+- **Google OAuth 2.0 Integration:** Secure login using Google accounts, with automatic role detection for students and faculty.
+- **IntelliTrack Submission (Student):** 
+    - A smart "Drive Browser" that automatically identifies SRS and SDD documents in the student's Google Drive.
+    - Link-based submission system to avoid redundant file uploads.
+- **Verification Gatekeeper (Teacher):**
+    - **Batch CSV Import:** Ability to import verified project lists from Excel/CSV for large-scale tracking.
+    - **Live Document Review:** One-click preview of student-submitted links to verify content before archival.
+    - **Secure Approval:** Teachers act as the final authority to trigger the archival process.
+- **Standardized Local Archival:** 
+    - Automated "Pull" system that downloads verified documents from the cloud.
+    - Intelligent folder organization (e.g., `Capstone_Archives/2025-2026_PROJECT_TITLE/`).
+    - Automatic file renaming and sorting.
+- **Audit & History:** A persistent digital log of all archived projects, searchable by project title and document type.
+- **Data Privacy:** Fully compliant with RA 10173 (Data Privacy Act of 2012) by ensuring data is only accessed by authorized faculty.
 
 ## 🛠 Tech Stack
 
-- **Frontend:** React 19, TypeScript, Vite, Axios.
-- **Backend:** Python 3.11+, Flask.
-- **Database:** SQLite (SQLAlchemy).
-- **Authentication:** Flask-Login & Google OAuth 2.0.
-- **API:** Google Drive API v3.
+- **Frontend:** React 19 (TypeScript, Vite, Axios)
+- **Backend:** Python 3.11+ (Flask, Flask-Login, Flask-SQLAlchemy)
+- **Database:** SQLite (Relational structure for Users, Submissions, and Archives)
+- **API:** Google Drive API v3 (OAuth 2.0)
 
-## 📋 Setup Instructions
+## 📋 Quick Start
 
 ### 1. Prerequisites
-- **Node.js 18+**
-- **Python 3.11+**
-- **Google Cloud Credentials:** An `OAuth 2.0 Client ID` (Web Application type).
+- Node.js 18+ & Python 3.11+
+- Google Cloud `client_secret.json` placed in the `/backend` folder.
 
-### 2. Backend Setup (Flask)
+### 2. Run the System
+**Backend:**
 ```powershell
-# Navigate to backend
 cd backend
-
-# Create and activate virtual environment
 python -m venv venv
 .\venv\Scripts\activate
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Place your Google credentials
-# Download your JSON from Google Console and rename it to 'client_secret.json' inside /backend
+python app.py
 ```
 
-### 3. Frontend Setup (React + Vite)
+**Frontend:**
 ```powershell
-# Navigate to frontend
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-### 4. Database Initialization
-On the first run, the database (`instance/drivesafe.db`) is created automatically. If you update the code and get column errors, run:
-```powershell
-python backend/force_fix.py
-```
+## 🔐 Role Demo Logic
+To demonstrate the system effectively during the Capstone demo:
+- **Default:** All new signups are students.
+- **Teacher Mode:** Run `python backend/set_teacher.py` to upgrade your account.
+- **Student Mode:** Run `python backend/set_student.py` to revert.
 
-## 🔐 Role Management (Very Important)
-
-By default, all new users are registered as **students**. To test the Teacher Review dashboard, you must manually upgrade your account:
-
-1. Log in to the web app once.
-2. Run the upgrade script in your terminal:
-   ```powershell
-   python backend/set_teacher.py
-   ```
-3. Logout and Login again to see the `⚖️ Review Submissions` menu.
-
-To switch back to student:
-```powershell
-python backend/set_student.py
-```
-
-## 📊 Teacher CSV Format
-When importing batch projects, use a `.csv` file with these headers:
-`ProjectTitle, AcademicYear, SRS_URL, SDD_URL`
-
-## 👥 Team Members
-
-| Name | Role | GitHub |
-| --- | --- | --- |
-| John Earl F. Mandawe | Senior Developer | @johnearl |
-| Lyrech James E. Laspiñas | Frontend/UI | @lyrech |
-| Louis Drey F. Castañeto | Developer | @louisdrey |
-| Clyde Nixon Jumawan | Developer | @klaydgg12 |
-| Mark Joenylle B. Cortes | Developer | @markjoenylle |
+## 👥 Development Team
+- **John Earl F. Mandawe** - Senior Developer (Backend & Security Integration)
+- **Lyrech James E. Laspiñas** - Frontend Architect & UI Design
+- **Louis Drey F. Castañeto** - Core Module Developer
+- **Clyde Nixon Jumawan** - Systems Integration & Git Lead
+- **Mark Joenylle B. Cortes** - Quality Assurance & Deployment
 
 ---
 **© 2025 CEBU INSTITUTE OF TECHNOLOGY UNIVERSITY - College of Computer Studies**
