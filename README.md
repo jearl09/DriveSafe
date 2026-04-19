@@ -55,12 +55,6 @@ To demonstrate the system effectively during the Capstone demo:
 - **Teacher Mode:** Run `python backend/set_teacher.py` to upgrade your account.
 - **Student Mode:** Run `python backend/set_student.py` to revert.
 
-## 👥 Development Team
-- **John Earl F. Mandawe** - Senior Developer (Backend & Security Integration)
-- **Lyrech James E. Laspiñas** - Frontend Architect & UI Design
-- **Louis Drey F. Castañeto** - Core Module Developer
-- **Clyde Nixon Jumawan** - Systems Integration & Git Lead
-- **Mark Joenylle B. Cortes** - Quality Assurance & Deployment
 
 ---
 **© 2025 CEBU INSTITUTE OF TECHNOLOGY UNIVERSITY - College of Computer Studies**
