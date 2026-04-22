@@ -6,11 +6,9 @@ import AboutPage from "./pages/AboutPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import BackupHistoryPage from "./pages/BackupHistoryPage";
-import SubmitProjectPage from "./pages/SubmitProjectPage";
-import TeacherReviewPage from "./pages/TeacherReviewPage";
+import RegistryDashboard from "./pages/RegistryDashboard";
 import "./App.css";
 
-// Use environment variable or fallback to string (Best Practice)
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "314972685252-t6v2r7ok3d41n91jp9vpboo83bg9cgk1.apps.googleusercontent.com";
 
 function App() {
@@ -30,21 +28,15 @@ function App() {
         setCurrentPage("dashboard");
       } else if (hash === "backup-history") {
         setCurrentPage("backup-history");
-      } else if (hash === "upload") {
-        setCurrentPage("upload");
-      } else if (hash === "review") {
-        setCurrentPage("review");
+      } else if (hash === "registry-dashboard") {
+        setCurrentPage("registry-dashboard");
       } else {
         setCurrentPage("home");
       }
     };
 
-    // Set initial page based on hash
     handleHashChange();
-
-    // Listen for hash changes
     window.addEventListener("hashchange", handleHashChange);
-
     return () => {
       window.removeEventListener("hashchange", handleHashChange);
     };
@@ -62,10 +54,8 @@ function App() {
         return <DashboardPage />;
       case "backup-history":
         return <BackupHistoryPage />;
-      case "upload":
-        return <SubmitProjectPage />;
-      case "review":
-        return <TeacherReviewPage />;
+      case "registry-dashboard":
+        return <RegistryDashboard />;
       default:
         return <HomePage />;
     }

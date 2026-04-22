@@ -1,206 +1,238 @@
-// DashboardPage.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "../App.css";
+import { 
+  LayoutDashboard, 
+  History, 
+  Settings, 
+  LogOut, 
+  ShieldCheck, 
+  Zap, 
+  Database, 
+  User, 
+  ExternalLink,
+  RefreshCw,
+  Activity,
+  FileCheck,
+  Lock,
+  ChevronRight
+} from "lucide-react";
 
-const DashboardPage = () => {
-  const [files, setFiles] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [isBackingUp, setIsBackingUp] = useState(false);
-  const [userRole, setUserRole] = useState<string>("student");
-  
-  // Choice state: 'review' or 'direct'
-  const [importMode, setImportMode] = useState<'review' | 'direct'>('review');
+interface UserInfo {
+  email: string;
+  name: string;
+  role: string;
+}
 
-  const [userEmail] = useState(localStorage.getItem("user_email") || "user@example.com");
-  const [userName] = useState(localStorage.getItem("user_name") || "Authenticated via Google");
+interface DashboardStats {
+  archived_count: number;
+  pending_count: number;
+  service_account_configured: boolean;
+  last_sync: string;
+}
+
+const DashboardPage: React.FC = () => {
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/user-info', { withCredentials: true });
-        setUserRole(response.data.role);
+        const [userRes, statsRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/user-info', { withCredentials: true }),
+          axios.get('http://localhost:5000/api/registry/stats', { withCredentials: true })
+        ]);
+        setUser(userRes.data);
+        setStats(statsRes.data);
       } catch (err) {
-        console.error("Failed to fetch user info", err);
-      }
-    };
-
-    const fetchDriveFiles = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get('http://localhost:5000/drive/files', { withCredentials: true });
-        if (response.data.files) {
-          setFiles(response.data.files);
-          setStats(response.data.ai_stats);
-        }
-      } catch (error) {
-        console.error("Connection Failed:", error);
+        console.error("Dashboard Fetch Failed", err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchUserData();
-    fetchDriveFiles();
+    fetchData();
   }, []);
 
-  const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const file = e.target.files[0];
-    const formData = new FormData();
-    formData.append('file', file);
-    // Send 'true' if mode is direct
-    formData.append('direct_archive', (importMode === 'direct').toString());
-
-    try {
-        setLoading(true);
-        const response = await axios.post('http://localhost:5000/api/teacher/import-csv', formData, {
-            withCredentials: true,
-            headers: { 'Content-Type': 'multipart/form-data' }
-        });
-        alert(response.data.message);
-        window.location.hash = response.data.redirect;
-    } catch (err: any) {
-        alert("Import failed: " + (err.response?.data?.error || err.message));
-    } finally {
-        setLoading(false);
-    }
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.hash = "";
   };
 
-  const handleStartBackup = async () => {
-    setIsBackingUp(true);
-    try {
-      const response = await axios.post('http://localhost:5000/drive/backup', {}, { 
-        withCredentials: true,
-        responseType: 'blob'
-      });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `DriveSafe_Archive_${new Date().toISOString().slice(0,10)}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      alert("Backup Complete!");
-      window.location.hash = "backup-history";
-    } catch (error) {
-      alert("Backup Failed");
-    } finally {
-      setIsBackingUp(false);
-    }
-  };
+  if (loading) {
+    return (
+      <div className="h-screen w-full bg-slate-50 flex items-center justify-center">
+        <RefreshCw className="w-8 h-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="drivesafe-dashboard-page">
-      <header className="header">
-        <div className="container">
-          <div className="dashboard-logo-section">
-            <div className="dashboard-logo-icon-gradient">
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="2" y="2" width="28" height="28" rx="4" fill="url(#gradient)"/>
-                <rect x="8" y="8" width="16" height="12" rx="1" stroke="white" strokeWidth="1.5" fill="none"/>
-                <defs>
-                  <linearGradient id="gradient" x1="0" y1="0" x2="32" y2="32">
-                    <stop offset="0%" stopColor="#2563eb"/><stop offset="100%" stopColor="#9333ea"/>
-                  </linearGradient>
-                </defs>
-              </svg>
+    <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
+      {/* Navbar */}
+      <nav className="w-full bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg">
+              <Database className="w-5 h-5 text-white" />
             </div>
-            <div className="dashboard-logo-text">
-              <div className="dashboard-logo-title">DriveSafe</div>
-              <div className="dashboard-logo-subtitle">Automated Archival Tool</div>
-            </div>
+            <span className="text-xl font-bold tracking-tight text-slate-900">DriveSafe</span>
           </div>
-          <div className="dashboard-user-section">
-            <div className="dashboard-user-info">
-              <div className="dashboard-user-email">{userEmail}</div>
-              <div className="dashboard-user-auth">{userName} ({userRole.toUpperCase()})</div>
+          
+          <div className="flex items-center gap-4">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-slate-900 leading-none">{user?.name}</p>
+              <p className="text-xs text-slate-500 mt-1">{user?.email}</p>
             </div>
-            <button className="dashboard-logout-btn" onClick={() => {localStorage.clear(); window.location.hash=""}}>Logout</button>
-          </div>
-        </div>
-      </header>
-
-      <nav className="dashboard-nav">
-        <div className="container">
-          <div className="dashboard-nav-container">
-            <a href="#dashboard" className="dashboard-nav-item active">Dashboard</a>
-            <a href="#backup-history" className="dashboard-nav-item">Archive History</a>
-            {userRole === 'student' && <a href="#upload" className="dashboard-nav-item" style={{ color: '#2563eb', fontWeight: 'bold' }}>📤 Upload Project</a>}
-            {userRole === 'teacher' && <a href="#review" className="dashboard-nav-item" style={{ color: '#9333ea', fontWeight: 'bold' }}>⚖️ Review Submissions</a>}
+            <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block"></div>
+            <button 
+              onClick={handleLogout}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              title="Sign Out"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </nav>
 
-      <main className="dashboard-main">
-        <div className="container">
-          <div className="dashboard-card">
-            <h1 className="dashboard-card-title">Welcome to DriveSafe</h1>
-            
-            {userRole === 'teacher' && (
-                <div style={{ background: '#f5f3ff', padding: '30px', borderRadius: '20px', border: '1px solid #ddd6fe', marginBottom: '30px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
-                    <div style={{ marginBottom: '20px' }}>
-                        <h3 style={{ color: '#5b21b6', fontSize: '1.25rem', fontWeight: 700, margin: 0 }}>Batch Import Projects (CSV)</h3>
-                        <p style={{ fontSize: '0.875rem', color: '#7c3aed', marginTop: '4px' }}>Upload a verified list to populate the archival queue.</p>
-                    </div>
-                    
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', alignItems: 'center' }}>
-                        {/* MODE SELECTOR */}
-                        <div style={{ display: 'flex', background: '#ede9fe', padding: '4px', borderRadius: '12px' }}>
-                            <button 
-                                onClick={() => setImportMode('review')}
-                                style={{ 
-                                    padding: '8px 16px', borderRadius: '10px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                                    background: importMode === 'review' ? '#fff' : 'transparent',
-                                    color: importMode === 'review' ? '#7c3aed' : '#94a3b8',
-                                    boxShadow: importMode === 'review' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                            >
-                                👀 Send to Review
-                            </button>
-                            <button 
-                                onClick={() => setImportMode('direct')}
-                                style={{ 
-                                    padding: '8px 16px', borderRadius: '10px', border: 'none', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer',
-                                    background: importMode === 'direct' ? '#fff' : 'transparent',
-                                    color: importMode === 'direct' ? '#7c3aed' : '#94a3b8',
-                                    boxShadow: importMode === 'direct' ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                                }}
-                            >
-                                🚀 Instant Archive
-                            </button>
-                        </div>
-
-                        <div style={{ flex: 1 }}>
-                            <input type="file" accept=".csv" onChange={handleCSVImport} style={{ fontSize: '0.875rem' }} />
-                        </div>
-                    </div>
-                    
-                    <div style={{ marginTop: '15px', padding: '10px 15px', background: '#fff', borderRadius: '8px', border: '1px solid #ddd6fe', fontSize: '0.75rem', color: '#6d28d9' }}>
-                        <strong>Mode Info:</strong> {importMode === 'review' ? 
-                          "Projects will be added to the Review Dashboard for you to verify links before archival." : 
-                          "Files will be downloaded and archived locally immediately after upload."}
-                    </div>
-                </div>
-            )}
-
-            <div className="dashboard-metrics">
-              <div className="dashboard-metric-card metric-blue">
-                <div className="metric-label">Drive Files Found</div>
-                <div className="metric-value">{files.length}</div>
-              </div>
-              <div className="dashboard-metric-card metric-purple">
-                <div className="metric-label">AI-Detected Academic</div>
-                <div className="metric-value">{stats?.Academic || 0}</div>
-              </div>
+      {/* Main Container */}
+      <div className="flex-1 w-full max-w-[1400px] mx-auto p-6 space-y-8">
+        
+        {/* Header & Status Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">System Overview</h2>
+            <p className="text-slate-500 text-sm">Automated archival status and management.</p>
+          </div>
+          <div className="flex items-center gap-3 bg-white border border-slate-200 p-1.5 rounded-full shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
+              <Activity className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sync: {stats?.last_sync.split(' ')[1]}</span>
             </div>
-
-            <button className="btn-start-backup" onClick={handleStartBackup} disabled={isBackingUp || loading}>
-              {isBackingUp ? "Processing..." : "Archive My Drive Files"}
-            </button>
+            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Cloud Active</span>
+            </div>
           </div>
         </div>
-      </main>
+
+        {/* Quick Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Import</p>
+              <p className="text-3xl font-black text-slate-900">{stats?.pending_count}</p>
+            </div>
+            <div className="p-4 bg-blue-50 rounded-2xl text-blue-600">
+              <Zap className="w-7 h-7" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Archived Total</p>
+              <p className="text-3xl font-black text-slate-900">{stats?.archived_count}</p>
+            </div>
+            <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600">
+              <FileCheck className="w-7 h-7" />
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cloud Auth Status</p>
+              <p className={`text-xl font-bold ${stats?.service_account_configured ? 'text-emerald-600' : 'text-red-600'}`}>
+                {stats?.service_account_configured ? "Operational" : "Check Config"}
+              </p>
+            </div>
+            <div className={`p-4 rounded-2xl ${stats?.service_account_configured ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+              <ShieldCheck className="w-7 h-7" />
+            </div>
+          </div>
+        </div>
+
+        {/* Action Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
+          
+          {/* Card 1 */}
+          <div className="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <div className="p-8 space-y-6">
+              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
+                <LayoutDashboard className="w-6 h-6" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Registry Dashboard</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Manage the archival pipeline. Load academic years, validate drive links, and execute local versioning.
+                </p>
+              </div>
+              <button 
+                onClick={() => window.location.hash = "registry-dashboard"}
+                className="w-full py-4 px-6 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors group-hover:shadow-lg"
+              >
+                Open Registry <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 2 */}
+          <div className="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+            <div className="p-8 space-y-6">
+              <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                <History className="w-6 h-6" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-slate-900">Archival Ledger</h3>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  View the master history of all archived projects, cryptographic hashes, and server storage paths.
+                </p>
+              </div>
+              <button 
+                onClick={() => window.location.hash = "backup-history"}
+                className="w-full py-4 px-6 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors group-hover:shadow-lg"
+              >
+                View Ledger <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Card 3 (Locked) */}
+          <div className="bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed overflow-hidden relative">
+            <div className="p-8 space-y-6 opacity-60">
+              <div className="w-12 h-12 bg-slate-300 rounded-xl flex items-center justify-center text-slate-600">
+                <Settings className="w-6 h-6" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xl font-bold text-slate-900">System Config</h3>
+                  <Lock className="w-4 h-4 text-slate-400" />
+                </div>
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  Configure sheet IDs, service account keys, and local storage parameters for the archival engine.
+                </p>
+              </div>
+              <button 
+                disabled
+                className="w-full py-4 px-6 bg-slate-200 text-slate-500 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                Configuration Locked
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Footer */}
+      <footer className="w-full max-w-[1400px] mx-auto px-6 py-10 border-t border-slate-200 mt-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-slate-400 text-xs font-medium">© 2026 DriveSafe • Advanced Registrar Archival Tool</p>
+          <div className="flex items-center gap-6">
+            <a href="#" className="text-slate-400 hover:text-blue-600 text-[10px] font-bold uppercase tracking-widest">Compliance</a>
+            <a href="#" className="text-slate-400 hover:text-blue-600 text-[10px] font-bold uppercase tracking-widest">Privacy Policy</a>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

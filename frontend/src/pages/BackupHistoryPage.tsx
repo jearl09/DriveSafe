@@ -1,95 +1,102 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
-import '../App.css';
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import "../App.css";
 
-interface BackupRecord {
+interface LedgerRecord {
     id: number;
-    filename: string;
-    date: string;
+    project_id: string;
+    project_title: string;
+    academic_year: string;
     status: string;
-    local_path: string;
+    srs_path: string;
+    sds_path: string;
+    srs_hash: string;
+    sds_hash: string;
+    error: string;
+    archived_at: string;
 }
 
 const BackupHistoryPage = () => {
-    const [history, setHistory] = useState<BackupRecord[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [records, setRecords] = useState<LedgerRecord[]>([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        const fetchHistory = async () => {
-            try {
-                const response = await axios.get('http://localhost:5000/history', { withCredentials: true });
-                setHistory(response.data);
-            } catch (err) {
-                console.error("Failed to load history");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchHistory();
+        fetchLedger();
     }, []);
 
-    const filteredHistory = history.filter(h => 
-        h.filename.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const fetchLedger = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get("http://localhost:5000/api/registry/ledger", { withCredentials: true });
+            setRecords(res.data);
+        } catch (err) {
+            console.error("Failed to fetch ledger", err);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <div className="container" style={{ marginTop: '50px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <div>
-                    <h2 style={{ margin: 0 }}>Archive History & Repository</h2>
-                    <p style={{ color: '#64748b', marginTop: '5px' }}>Persistent digital log of all successfully archived projects.</p>
-                </div>
-                <button onClick={() => window.location.hash = "dashboard"} className="btn btn-header">Back to Dashboard</button>
-            </div>
-
-            <div className="dashboard-card">
-                <div style={{ padding: '20px', borderBottom: '1px solid #e2e8f0' }}>
-                    <input 
-                        type="text" 
-                        placeholder="Search by project name..." 
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="form-input"
-                        style={{ maxWidth: '400px' }}
-                    />
+        <div style={{ padding: '40px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                    <div>
+                        <h1 style={{ margin: 0, color: '#1e293b' }}>Archival Ledger</h1>
+                        <p style={{ color: '#64748b', marginTop: '5px' }}>Master record of all local archives and cryptographic hashes.</p>
+                    </div>
+                    <button onClick={() => window.location.hash = 'dashboard'} style={{ background: '#2563eb', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                        Back to Admin
+                    </button>
                 </div>
 
-                {loading ? (
-                    <div style={{ padding: '50px', textAlign: 'center' }}>Loading records...</div>
-                ) : filteredHistory.length === 0 ? (
-                    <div style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>No archived records found.</div>
-                ) : (
-                    <table className="files-table">
+                <div style={{ backgroundColor: 'white', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                         <thead>
-                            <tr>
-                                <th>Project & Document</th>
-                                <th>Archive Date</th>
-                                <th>Status</th>
-                                <th>Local Path</th>
+                            <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
+                                <th style={{ padding: '15px', color: '#475569' }}>Project</th>
+                                <th style={{ padding: '15px', color: '#475569' }}>Year</th>
+                                <th style={{ padding: '15px', color: '#475569' }}>Status</th>
+                                <th style={{ padding: '15px', color: '#475569' }}>Local Paths</th>
+                                <th style={{ padding: '15px', color: '#475569' }}>SHA-256 Hashes</th>
+                                <th style={{ padding: '15px', color: '#475569' }}>Archived At</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredHistory.map(h => (
-                                <tr key={h.id}>
-                                    <td style={{ fontWeight: 600 }}>{h.filename}</td>
-                                    <td style={{ color: '#64748b' }}>{h.date}</td>
-                                    <td>
+                            {loading ? (
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>Loading master ledger...</td></tr>
+                            ) : records.length === 0 ? (
+                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>No archival records found.</td></tr>
+                            ) : records.map((r) => (
+                                <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '15px' }}>
+                                        <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{r.project_title}</div>
+                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>ID: {r.project_id}</div>
+                                    </td>
+                                    <td style={{ padding: '15px', color: '#475569' }}>{r.academic_year}</td>
+                                    <td style={{ padding: '15px' }}>
                                         <span style={{ 
-                                            padding: '4px 10px', borderRadius: '12px', fontSize: '11px', fontWeight: 700,
-                                            background: '#dcfce7', color: '#166534'
+                                            padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold',
+                                            backgroundColor: r.status === 'archived' ? '#dcfce7' : '#fee2e2',
+                                            color: r.status === 'archived' ? '#166534' : '#991b1b'
                                         }}>
-                                            {h.status}
+                                            {r.status.toUpperCase()}
                                         </span>
+                                        {r.error && <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '5px', maxWidth: '150px' }}>{r.error}</div>}
                                     </td>
-                                    <td style={{ fontSize: '11px', color: '#94a3b8', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                        {h.local_path}
+                                    <td style={{ padding: '15px', fontSize: '0.7rem', color: '#64748b', maxWidth: '250px' }}>
+                                        <div style={{ marginBottom: '5px' }}><strong>SRS:</strong> {r.srs_path || 'N/A'}</div>
+                                        <div><strong>SDS:</strong> {r.sds_path || 'N/A'}</div>
                                     </td>
+                                    <td style={{ padding: '15px', fontSize: '0.65rem', color: '#64748b', fontFamily: 'monospace', maxWidth: '200px' }}>
+                                        <div style={{ marginBottom: '5px' }}><strong>SRS:</strong> {r.srs_hash ? r.srs_hash.substring(0, 16) + '...' : 'N/A'}</div>
+                                        <div><strong>SDS:</strong> {r.sds_hash ? r.sds_hash.substring(0, 16) + '...' : 'N/A'}</div>
+                                    </td>
+                                    <td style={{ padding: '15px', color: '#64748b', fontSize: '0.85rem' }}>{r.archived_at || 'N/A'}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                )}
+                </div>
             </div>
         </div>
     );

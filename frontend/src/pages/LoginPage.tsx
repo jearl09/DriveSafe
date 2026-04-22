@@ -9,7 +9,7 @@ const LoginPage = () => {
   
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
-    scope: "https://www.googleapis.com/auth/drive.readonly",
+    scope: "openid email profile",
     // @ts-ignore
     prompt: 'consent', 
     onSuccess: async (codeResponse) => {
