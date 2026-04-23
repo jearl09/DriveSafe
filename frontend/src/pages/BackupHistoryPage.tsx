@@ -85,11 +85,11 @@ const BackupHistoryPage = () => {
                                     </td>
                                     <td style={{ padding: '15px', fontSize: '0.7rem', color: '#64748b', maxWidth: '250px' }}>
                                         <div style={{ marginBottom: '5px' }}><strong>SRS:</strong> {r.srs_path || 'N/A'}</div>
-                                        <div><strong>SDS:</strong> {r.sds_path || 'N/A'}</div>
+                                        <div><strong>SDD:</strong> {r.sdd_path || 'N/A'}</div>
                                     </td>
                                     <td style={{ padding: '15px', fontSize: '0.65rem', color: '#64748b', fontFamily: 'monospace', maxWidth: '200px' }}>
                                         <div style={{ marginBottom: '5px' }}><strong>SRS:</strong> {r.srs_hash ? r.srs_hash.substring(0, 16) + '...' : 'N/A'}</div>
-                                        <div><strong>SDS:</strong> {r.sds_hash ? r.sds_hash.substring(0, 16) + '...' : 'N/A'}</div>
+                                        <div><strong>SDD:</strong> {r.sdd_hash ? r.sdd_hash.substring(0, 16) + '...' : 'N/A'}</div>
                                     </td>
                                     <td style={{ padding: '15px', color: '#64748b', fontSize: '0.85rem' }}>{r.archived_at || 'N/A'}</td>
                                 </tr>

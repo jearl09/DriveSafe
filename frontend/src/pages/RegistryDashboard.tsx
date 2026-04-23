@@ -104,9 +104,12 @@ const RegistryDashboard: React.FC = () => {
 
     const getStatusBadge = (status: string) => {
         const base = "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider";
-        if (status.toLowerCase() === 'pending') return <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>;
-        if (status.toLowerCase() === 'archived') return <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>;
-        return <span className={`${base} bg-red-50 text-red-600`}>{status}</span>;
+        const s = status.toLowerCase();
+        if (s === 'pending') return <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>;
+        if (s === 'archived') return <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>;
+        if (s === 'duplicate') return <span className={`${base} bg-amber-50 text-amber-600`}>Duplicate</span>;
+        if (s === 'failed') return <span className={`${base} bg-red-50 text-red-600`}>Action Required</span>;
+        return <span className={`${base} bg-slate-100 text-slate-500`}>{status}</span>;
     };
 
     return (
@@ -203,7 +206,7 @@ const RegistryDashboard: React.FC = () => {
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Project ID</th>
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Project Title</th>
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SRS Doc</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SDS Doc</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SDD Doc</th>
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
                                 </tr>
                             </thead>
@@ -259,14 +262,14 @@ const RegistryDashboard: React.FC = () => {
                                             ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {p.sds_link ? (
+                                            {p.sds_link || p.sdd_link ? (
                                                 <div className="flex flex-col gap-1">
-                                                    <a href={p.sds_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                                                    <a href={p.sds_link || p.sdd_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
                                                         <ExternalLink className="w-3 h-3" /> View Source
                                                     </a>
-                                                    {validationResults[p.sds_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.sds_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.sds_link]}
+                                                    {validationResults[p.sds_link || p.sdd_link] && (
+                                                        <span className={`text-[10px] font-medium ${validationResults[p.sds_link || p.sdd_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {validationResults[p.sds_link || p.sdd_link]}
                                                         </span>
                                                     )}
                                                 </div>

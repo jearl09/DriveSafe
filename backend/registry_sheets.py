@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 COL_PROJECT_ID = 0
 COL_PROJECT_TITLE = 1
 COL_SRS_LINK = 2
-COL_SDS_LINK = 3
+COL_SDD_LINK = 3
 COL_STATUS = 4
 COL_LAST_UPDATED = 5
 COL_SRS_PATH = 6
-COL_SDS_PATH = 7
+COL_SDD_PATH = 7
 COL_ERROR = 8
 
 class RegistrySheetsService:
@@ -29,41 +29,49 @@ class RegistrySheetsService:
 
     def get_pending_projects(self, sheet_name):
         """Fetch all rows with Archival Status = 'Pending'"""
-        worksheet = self.workbook.worksheet(sheet_name)
-        all_records = worksheet.get_all_values()
-        
-        # Skip header row (index 0)
-        headers = all_records[0]
-        pending_projects = []
-        
-        for idx, row in enumerate(all_records[1:], start=2): # 1-indexed for gspread
-            if len(row) > COL_STATUS and row[COL_STATUS].lower() == 'pending':
-                project = {
-                    'row_index': idx,
-                    'project_id': row[COL_PROJECT_ID] if len(row) > COL_PROJECT_ID else '',
-                    'project_title': row[COL_PROJECT_TITLE] if len(row) > COL_PROJECT_TITLE else 'Untitled',
-                    'srs_link': row[COL_SRS_LINK] if len(row) > COL_SRS_LINK else '',
-                    'sds_link': row[COL_SDS_LINK] if len(row) > COL_SDS_LINK else '',
-                    'status': row[COL_STATUS] if len(row) > COL_STATUS else '',
-                    'academic_year': sheet_name
-                }
-                pending_projects.append(project)
-        
-        return pending_projects
+        try:
+            worksheet = self.workbook.worksheet(sheet_name)
+            all_records = worksheet.get_all_values()
+            
+            if not all_records:
+                return []
 
-    def update_status(self, sheet_name, row_index, status, srs_path='', sds_path='', error_msg=''):
+            pending_projects = []
+            for idx, row in enumerate(all_records[1:], start=2):
+                # Ensure row has enough columns for status check
+                if len(row) > COL_STATUS:
+                    status = row[COL_STATUS].strip().lower()
+                    if status == 'pending':
+                        project = {
+                            'row_index': idx,
+                            'project_id': row[COL_PROJECT_ID] if len(row) > COL_PROJECT_ID else '',
+                            'project_title': row[COL_PROJECT_TITLE] if len(row) > COL_PROJECT_TITLE else 'Untitled',
+                            'srs_link': row[COL_SRS_LINK] if len(row) > COL_SRS_LINK else '',
+                            'sdd_link': row[COL_SDD_LINK] if len(row) > COL_SDD_LINK else '',
+                            'status': row[COL_STATUS],
+                            'academic_year': sheet_name
+                        }
+                        pending_projects.append(project)
+            return pending_projects
+        except Exception as e:
+            print(f"Error fetching projects from {sheet_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            raise e
+
+    def update_status(self, sheet_name, row_index, status, srs_path='', sdd_path='', error_msg=''):
         """Update the row with the current status and archival details"""
         worksheet = self.workbook.worksheet(sheet_name)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Batch update for efficiency
-        # Status (E), Last Updated (F), SRS Path (G), SDS Path (H), Error (I)
+        # Status (E), Last Updated (F), SRS Path (G), SDD Path (H), Error (I)
         # 1-indexed for cell names: A=1, B=2, C=3, D=4, E=5, F=6, G=7, H=8, I=9
         updates = [
             {'range': f'E{row_index}', 'values': [[status]]},
             {'range': f'F{row_index}', 'values': [[timestamp]]},
             {'range': f'G{row_index}', 'values': [[srs_path]]},
-            {'range': f'H{row_index}', 'values': [[sds_path]]},
+            {'range': f'H{row_index}', 'values': [[sdd_path]]},
             {'range': f'I{row_index}', 'values': [[error_msg]]}
         ]
         

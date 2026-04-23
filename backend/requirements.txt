@@ -12,3 +12,5 @@ google-auth-httplib2
 google-auth-oauthlib
 python-dotenv
 requests
+scikit-learn
+pdfplumber

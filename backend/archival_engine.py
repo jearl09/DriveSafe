@@ -4,10 +4,15 @@ import re
 import hashlib
 import datetime
 import logging
+import pdfplumber
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
 from oauth2client.service_account import ServiceAccountCredentials
 from models import db, ArchivalLedger
+
+# AI Imports
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -21,130 +26,170 @@ class ArchivalEngine:
         self.archive_root = archive_root
 
     def _extract_file_id(self, url):
-        """Extracts Google Drive file ID from common URL formats"""
-        if not url:
-            return None
-        
-        # Pattern for /file/d/ID/view
-        match = re.search(r'/file/d/([a-zA-Z0-9_-]+)', url)
-        if match:
-            return match.group(1)
-        
-        # Pattern for ?id=ID
-        match = re.search(r'id=([a-zA-Z0-9_-]+)', url)
-        if match:
-            return match.group(1)
-            
+        if not url: return None
+        match = re.search(r'/d/([a-zA-Z0-9_-]{25,})', url)
+        if match: return match.group(1)
+        match = re.search(r'id=([a-zA-Z0-9_-]{25,})', url)
+        if match: return match.group(1)
         return None
 
-    def _get_next_version(self, folder_path, base_filename, suffix):
-        """Finds the next available version number for a file"""
-        # base_filename: "My Project SRS"
-        # suffix: "_v"
-        # Expected: "My Project SRS_v1.pdf", "My Project SRS_v2.pdf", etc.
-        
-        version = 1
-        while True:
-            file_name = f"{base_filename}{suffix}{version}.pdf"
-            if not os.path.exists(os.path.join(folder_path, file_name)):
-                return file_name, version
-            version += 1
-
     def _compute_hash(self, file_path):
-        """Computes SHA-256 hash of a file"""
         sha256_hash = hashlib.sha256()
         with open(file_path, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 sha256_hash.update(byte_block)
         return sha256_hash.hexdigest()
 
-    def download_file(self, file_id, destination_path):
-        """Downloads a file from Google Drive using ID"""
+    def _extract_text_from_pdf(self, file_path):
         try:
-            request = self.service.files().get_media(fileId=file_id)
+            text = ""
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages[:10]:
+                    text += (page.extract_text() or "")
+            return text
+        except Exception as e:
+            logger.error(f"Text extraction failed: {e}")
+            return ""
+
+    def check_for_duplicates(self, new_file_hash, new_text):
+        """
+        Deduplication Engine: Returns (type, score, original_title)
+        """
+        # 1. Exact Hash Check
+        exact_match = ArchivalLedger.query.filter(
+            (ArchivalLedger.srs_hash == new_file_hash) | 
+            (ArchivalLedger.sdd_hash == new_file_hash)
+        ).first()
+        
+        if exact_match:
+            return "Exact Duplicate", 1.0, exact_match.project_title
+
+        # 2. AI Semantic Similarity
+        if not new_text or len(new_text) < 200: 
+            return None, 0, None
+
+        past_records = ArchivalLedger.query.filter(ArchivalLedger.status == 'archived').all()
+        for record in past_records:
+            # Check SRS of past projects
+            path = record.srs_local_path or record.sdd_local_path
+            if path and os.path.exists(path):
+                past_text = self._extract_text_from_pdf(path)
+                if len(past_text) > 200:
+                    try:
+                        vectorizer = TfidfVectorizer().fit_transform([new_text, past_text])
+                        vectors = vectorizer.toarray()
+                        similarity = cosine_similarity(vectors)[0][1]
+                        # 90% threshold for blocking
+                        if similarity > 0.90:
+                            return "Semantic Duplicate", similarity, record.project_title
+                    except: continue
+        return None, 0, None
+
+    def download_file(self, file_id, destination_path):
+        try:
+            file_metadata = self.service.files().get(fileId=file_id, fields='mimeType, name, capabilities').execute()
+            mime_type = file_metadata.get('mimeType')
+            can_download = file_metadata.get('capabilities', {}).get('canDownload', True)
+            
+            if not can_download:
+                raise Exception("Owner restricted downloads for this file.")
+
             fh = io.BytesIO()
+            if 'google-apps.document' in mime_type:
+                request = self.service.files().export_media(fileId=file_id, mimeType='application/pdf')
+            else:
+                request = self.service.files().get_media(fileId=file_id)
+
             downloader = MediaIoBaseDownload(fh, request)
             done = False
             while not done:
                 status, done = downloader.next_chunk()
-                logger.info(f"Download {int(status.progress() * 100)}%")
             
             with open(destination_path, 'wb') as f:
                 f.write(fh.getbuffer())
             return True
         except Exception as e:
-            logger.error(f"Error downloading file {file_id}: {e}")
+            logger.error(f"Download Error: {e}")
             raise e
 
     def archive_project(self, project_data):
-        """
-        Processes a single project row: download SRS/SDS, save locally, hash, log to DB.
-        project_data: {row_index, project_id, project_title, srs_link, sds_link, academic_year}
-        """
         academic_year = project_data.get('academic_year', 'Unknown_Year')
         project_title = project_data.get('project_title', 'Untitled').replace(' ', '_').replace('/', '_')
-        
-        # 1. Create directory structure: Capstone_Archives/{academic_year}/{project_title}
         project_dir = os.path.join(self.archive_root, academic_year, project_title)
         os.makedirs(project_dir, exist_ok=True)
         
-        srs_local_path = None
-        sds_local_path = None
-        srs_hash = None
-        sds_hash = None
+        results = {'srs': {'path': None, 'hash': None, 'dup': None}, 'sdd': {'path': None, 'hash': None, 'dup': None}}
         error_msg = ""
-        
-        # 2. Process SRS
-        srs_id = self._extract_file_id(project_data.get('srs_link'))
-        if srs_id:
+        is_duplicate = False
+
+        for doc_type in ['srs', 'sdd']:
+            link = project_data.get(f'{doc_type}_link')
+            file_id = self._extract_file_id(link)
+            
+            if file_id:
+                try:
+                    temp_path = os.path.join(project_dir, f"TEMP_{doc_type.upper()}.pdf")
+                    self.download_file(file_id, temp_path)
+                    
+                    file_hash = self._compute_hash(temp_path)
+                    file_text = self._extract_text_from_pdf(temp_path)
+                    
+                    # BLOCK DUPLICATES
+                    dup_type, score, orig_title = self.check_for_duplicates(file_hash, file_text)
+                    
+                    if dup_type:
+                        is_duplicate = True
+                        results[doc_type]['dup'] = f"Duplicate blocked: {int(score*100)}% match with {orig_title}"
+                        os.remove(temp_path) # DELETE IMMEDIATELY, DO NOT ARCHIVE
+                    else:
+                        version = 1
+                        while True:
+                            final_name = f"{project_title}_{doc_type.upper()}_v{version}.pdf"
+                            final_path = os.path.join(project_dir, final_name)
+                            if not os.path.exists(final_path): break
+                            version += 1
+                        os.rename(temp_path, final_path)
+                        results[doc_type]['path'] = final_path
+                        results[doc_type]['hash'] = file_hash
+                except Exception as e:
+                    error_msg += f"{doc_type.upper()} Error: {str(e)}; "
+
+        status = "archived"
+        if error_msg: status = "failed"
+        elif is_duplicate: status = "duplicate" # New status for blocked files
+
+        # CLEANUP: If failed and no files were actually saved, remove the empty folder
+        if status == "failed" and not results['srs']['path'] and not results['sdd']['path']:
             try:
-                fname, _ = self._get_next_version(project_dir, f"{project_title}_SRS", "_v")
-                dest = os.path.join(project_dir, fname)
-                self.download_file(srs_id, dest)
-                srs_local_path = dest
-                srs_hash = self._compute_hash(dest)
-            except Exception as e:
-                error_msg += f"SRS Download Failed: {str(e)}; "
+                if os.path.exists(project_dir) and not os.listdir(project_dir):
+                    os.rmdir(project_dir)
+                    logger.info(f"Cleaned up empty folder for failed project: {project_title}")
+            except: pass
 
-        # 3. Process SDS
-        sds_id = self._extract_file_id(project_data.get('sds_link'))
-        if sds_id:
-            try:
-                fname, _ = self._get_next_version(project_dir, f"{project_title}_SDS", "_v")
-                dest = os.path.join(project_dir, fname)
-                self.download_file(sds_id, dest)
-                sds_local_path = dest
-                sds_hash = self._compute_hash(dest)
-            except Exception as e:
-                error_msg += f"SDS Download Failed: {str(e)}; "
+        # Combine duplicate warnings into error field for sheet feedback
+        if is_duplicate:
+            error_msg += (results['srs']['dup'] or "") + " " + (results['sdd']['dup'] or "")
 
-        status = "archived" if not error_msg and (srs_local_path or sds_local_path) else "failed"
-        if not srs_id and not sds_id:
-            status = "failed"
-            error_msg = "No valid links found."
-
-        # 4. Log to MariaDB ArchivalLedger
         ledger_entry = ArchivalLedger(
             project_id=project_data.get('project_id'),
             project_title=project_data.get('project_title'),
             academic_year=academic_year,
             srs_original_url=project_data.get('srs_link'),
-            sds_original_url=project_data.get('sds_link'),
-            srs_local_path=srs_local_path,
-            sds_local_path=sds_local_path,
-            srs_hash=srs_hash,
-            sds_hash=sds_hash,
+            sdd_original_url=project_data.get('sdd_link'),
+            srs_local_path=results['srs']['path'],
+            sdd_local_path=results['sdd']['path'],
+            srs_hash=results['srs']['hash'],
+            sdd_hash=results['sdd']['hash'],
             status=status,
             error_message=error_msg.strip(),
-            archived_at=datetime.datetime.utcnow() if status == "archived" else None
+            archived_at=datetime.datetime.utcnow()
         )
         db.session.add(ledger_entry)
         db.session.commit()
         
         return {
-            'status': status,
-            'srs_path': srs_local_path,
-            'sds_path': sds_local_path,
-            'error': error_msg.strip(),
-            'ledger_id': ledger_entry.id
+            'status': status, 
+            'srs_path': results['srs']['path'], 
+            'sdd_path': results['sdd']['path'], 
+            'error': error_msg.strip()
         }

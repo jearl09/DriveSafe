@@ -84,34 +84,35 @@ def archive_selected():
     if not projects:
         return jsonify({"error": "No projects selected"}), 400
         
-    # We'll run this in a background thread or just sequentially for now
-    # Since the user asked for "asynchronous" progress, we could use a global state or task queue.
-    # For simplicity in this script, we'll return a 202 and run a thread.
+    # Get the actual app object to pass into the thread
+    app = current_app._get_current_object()
     
-    def process_task(project_list):
-        sheets_service, engine = get_services()
-        for p in project_list:
-            try:
-                # Update status in Sheet to 'Processing'
-                sheets_service.update_status(p['academic_year'], p['row_index'], 'Processing')
-                
-                # Run archival engine
-                result = engine.archive_project(p)
-                
-                # Update Sheet with final results
-                sheets_service.update_status(
-                    p['academic_year'], 
-                    p['row_index'], 
-                    result['status'].capitalize(),
-                    srs_path=result['srs_path'] or '',
-                    sds_path=result['sds_path'] or '',
-                    error_msg=result['error']
-                )
-            except Exception as e:
-                print(f"Failed to process {p.get('project_title')}: {e}")
-                sheets_service.update_status(p['academic_year'], p['row_index'], 'Failed', error_msg=str(e))
+    def process_task(app_context, project_list):
+        with app_context.app_context():
+            sheets_service, engine = get_services()
+            for p in project_list:
+                try:
+                    # Update status in Sheet to 'Processing'
+                    sheets_service.update_status(p['academic_year'], p['row_index'], 'Processing')
+                    
+                    # Run archival engine
+                    result = engine.archive_project(p)
 
-    thread = threading.Thread(target=process_task, args=(projects,))
+                    # Update Sheet with final results
+                    sheets_service.update_status(
+                        p['academic_year'], 
+                        p['row_index'], 
+                        result['status'].capitalize(),
+                        srs_path=result['srs_path'] or '',
+                        sdd_path=result['sdd_path'] or '',
+                        error_msg=result['error']
+                    )
+
+                except Exception as e:
+                    print(f"Failed to process {p.get('project_title')}: {e}")
+                    sheets_service.update_status(p['academic_year'], p['row_index'], 'Failed', error_msg=str(e))
+
+    thread = threading.Thread(target=process_task, args=(app, projects,))
     thread.start()
     
     return jsonify({"message": f"Started archival for {len(projects)} projects in background."}), 202
@@ -132,9 +133,9 @@ def get_ledger():
         "academic_year": r.academic_year,
         "status": r.status,
         "srs_path": r.srs_local_path,
-        "sds_path": r.sds_local_path,
+        "sdd_path": r.sdd_local_path,
         "srs_hash": r.srs_hash,
-        "sds_hash": r.sds_hash,
+        "sdd_hash": r.sdd_hash,
         "error": r.error_message,
         "archived_at": r.archived_at.strftime("%Y-%m-%d %H:%M:%S") if r.archived_at else None
     } for r in records])

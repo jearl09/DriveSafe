@@ -13,7 +13,7 @@ import dotenv
 # Load environment variables
 dotenv.load_dotenv()
 
-from models import db, User, ArchivalLedger, Backup
+from models import db, User, ArchivalLedger
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
@@ -88,23 +88,12 @@ def get_user_info():
         "name": current_user.name,
         "role": current_user.role
     })
-
 @app.route('/auth/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()
     return jsonify({"message": "Logged out"}), 200
 
-@app.route('/history', methods=['GET'])
-@login_required
-def get_history():
-    if current_user.role != 'teacher':
-        return jsonify({"error": "Unauthorized"}), 403
-    history = Backup.query.order_by(Backup.id.desc()).limit(20).all()
-    return jsonify([{
-        "id": h.id, "filename": h.filename, "date": h.date, 
-        "file_count": h.file_count, "status": h.status, "local_path": h.local_path
-    } for h in history])
 
 import traceback
 
