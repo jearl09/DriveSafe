@@ -49,6 +49,15 @@ def unauthorized():
 from registry_routes import registry_bp
 app.register_blueprint(registry_bp)
 
+# --- DATABASE INITIALIZATION ---
+@app.before_request
+def create_tables():
+    # This is a safety check that runs once per process
+    if not hasattr(app, '_db_initialized'):
+        with app.app_context():
+            db.create_all()
+        app._db_initialized = True
+
 # --- FRONTEND ROUTES ---
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
