@@ -1,18 +1,17 @@
-# DRIVE-SAFE-GOAT-BUILD-V2
+# DRIVE-SAFE-GOAT-BUILD-V3
 [phases.setup]
-nixPkgs = ["nodejs", "python310", "python310Packages.pip", "gcc"]
+nixPkgs = ["nodejs_20", "python310", "gcc"]
 
 [phases.install]
 cmds = [
   "npm install --prefix frontend",
-  "python3 -m pip install --upgrade pip",
-  "python3 -m pip install -r backend/requirements.txt"
+  "python3 -m venv /opt/venv",
+  "/opt/venv/bin/pip install --upgrade pip",
+  "/opt/venv/bin/pip install -r backend/requirements.txt"
 ]
 
 [phases.build]
-cmds = [
-  "npm run build --prefix frontend"
-]
+cmds = ["npm run build --prefix frontend"]
 
 [start]
-cmd = "python3 backend/serve_prod.py"
+cmd = "/opt/venv/bin/python3 backend/serve_prod.py"
