@@ -1,0 +1,7 @@
+{
+  "name": "drivesafe-root",
+  "private": true,
+  "engines": {
+    "node": "22.x"
+  }
+}
