@@ -9,4 +9,3 @@ requests
 scikit-learn
 pdfplumber
 waitress
-psycopg2-binary

@@ -1,7 +1,10 @@
+[phases.setup]
+nixPkgs = ["nodejs", "python3", "gcc"]
+
 [phases.install]
 cmds = [
   "npm install --prefix frontend",
-  "pip install -r backend/requirements.txt"
+  "python3 -m pip install -r backend/requirements.txt"
 ]
 
 [phases.build]
