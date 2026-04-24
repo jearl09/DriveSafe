@@ -1,11 +1,16 @@
 services:
-  # 1. The Backend (Flask)
+  # The All-in-One DriveSafe Service
   - type: web
-    name: drivesafe-backend
+    name: drivesafe-app
     env: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: waitress-serve --port=$PORT app:app
+    # We run from the root so we can access both /frontend and /backend
+    rootDir: .
+    # Build React first, then install Python requirements
+    buildCommand: |
+      cd frontend && npm install && npm run build && cd ../backend && pip install -r requirements.txt
+    # Start the Flask app using Waitress
+    startCommand: |
+      cd backend && waitress-serve --port=$PORT app:app
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -14,26 +19,9 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: PYTHON_VERSION
-        value: 3.10.0
-
-  # 2. The Frontend (React)
-  - type: web
-    name: drivesafe-frontend
-    env: static
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    publishDir: dist
-    # This "Rewrite" rule tells Vercel/Render to send all /api requests to the backend
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://drivesafe-backend.onrender.com/api/*
-      - type: rewrite
-        source: /auth/*
-        destination: https://drivesafe-backend.onrender.com/auth/*
-      - type: rewrite
-        source: /*
-        destination: /index.html
+        value: "3.10"
+      - key: NODE_VERSION
+        value: "18.0.0"
 
 databases:
   - name: drivesafe-db
