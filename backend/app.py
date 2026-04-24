@@ -21,30 +21,44 @@ app = Flask(__name__,
             static_url_path='/')
 
 # --- DATABASE CONFIG ---
-raw_db_url = os.getenv('DATABASE_URL', '').strip()
+import logging
+logger = logging.getLogger('waitress')
 
-print(f">>> [BOOT] DATABASE_URL raw value: {raw_db_url[:15]}...", flush=True)
+# Get URL and strip whitespace/quotes
+raw_db_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
 
-if not raw_db_url or "localhost" in raw_db_url:
-    print(">>> [BOOT] ❌ ERROR: DATABASE_URL is missing or set to localhost!", flush=True)
-    # If we are in the cloud (PORT exists), we MUST NOT proceed with localhost
-    if os.getenv('PORT'):
-        raise RuntimeError("CRITICAL: Refusing to start with localhost database in production!")
+if not raw_db_url:
+    logger.error("❌ CRITICAL: DATABASE_URL is missing!")
+    if os.getenv('PORT'): raise RuntimeError("DATABASE_URL missing in production")
 
-# Fix for Render/Postgres URL compatibility
+# 1. Fix Render/Postgres
 if raw_db_url.startswith("postgres://"):
     raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 
-# Fix for Railway/MySQL URL compatibility - FORCE pymysql driver
+# 2. Fix Double Protocol (e.g., mysql+pymysql://mysql://)
+if "mysql://" in raw_db_url and "mysql+pymysql://" in raw_db_url:
+    raw_db_url = raw_db_url.replace("mysql://", "", 1)
+
+# 3. Ensure Driver is present for MySQL/MariaDB
 if raw_db_url.startswith("mysql://"):
     raw_db_url = raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
 
-print(f">>> [BOOT] SQLAlchemy Protocol: {raw_db_url.split(':')[0]}", flush=True)
+# 4. Final safety check
+if "localhost" in raw_db_url or "127.0.0.1" in raw_db_url:
+    if os.getenv('PORT'):
+        logger.error(f"❌ REJECTED: URL contains localhost in production! Value: {raw_db_url[:20]}...")
+        raise RuntimeError("Localhost DB rejected in production")
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-print(f">>> [BOOT] SQLAlchemy URI set to: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[-1]}", flush=True)
+# High-visibility connection log
+try:
+    host_info = raw_db_url.split('@')[-1]
+    logger.info(f"🚀 VAULT CONNECTING TO: {host_info}")
+except:
+    logger.info("🚀 VAULT CONNECTING...")
 
 db.init_app(app)
 login_manager = LoginManager(app)
