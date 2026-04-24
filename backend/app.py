@@ -22,25 +22,27 @@ app = Flask(__name__,
 
 # --- DATABASE CONFIGURATION ---
 def get_robust_database_uri():
+    # Priority 1: Use DATABASE_URL from environment
     raw_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
-    if not raw_url:
-        print("⚠️ [DATABASE] DATABASE_URL is missing! Using SQLite fallback.", flush=True)
-        return 'sqlite:///drivesafe_fallback.db'
+    
+    # Validation based on user suggestion
+    if not raw_url or len(raw_url) < 10 or "://" not in raw_url:
+        print("⚠️ [DATABASE] Invalid or missing DATABASE_URL. Falling back to SQLite.", flush=True)
+        return 'sqlite:///drivesafe.db'
     
     db_url = raw_url
-    if raw_url.startswith('mariadb'):
-        db_url = re.sub(r'^mariadb(\+mariadbconnector)?://', 'mysql+pymysql://', raw_url)
+    # Ensure MySQL/MariaDB use pymysql driver
+    if raw_url.startswith('mariadb://'):
+        db_url = raw_url.replace('mariadb://', 'mysql+pymysql://', 1)
     elif raw_url.startswith('mysql://'):
         db_url = raw_url.replace('mysql://', 'mysql+pymysql://', 1)
+    # Fix for Postgres if needed (Render often uses postgres://)
     elif raw_url.startswith('postgres://'):
         db_url = raw_url.replace('postgres://', 'postgresql://', 1)
 
-    if len(db_url) < 25 and "sqlite" not in db_url:
-        print("❌ [DATABASE] URL too short! Using error fallback.", flush=True)
-        return 'sqlite:///drivesafe_error.db'
-
+    # Log connection (masked for security)
     masked = db_url.split('@')[-1] if '@' in db_url else db_url
-    print(f"✅ [VAULT] Connecting to: {db_url.split('://')[0]}://****@{masked}", flush=True)
+    print(f"✅ [DATABASE] Connecting to: {db_url.split('://')[0]}://****@{masked}", flush=True)
     return db_url
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
