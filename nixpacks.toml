@@ -1,6 +1,6 @@
-# DRIVE-SAFE-GOAT-BUILD-V6
+# DRIVE-SAFE-GOAT-BUILD-V7
 [phases.setup]
-nixPkgs = ["nodejs", "python310", "gcc"]
+nixPkgs = ["nodejs-22_x", "python310", "gcc"]
 
 [phases.build]
 cmds = ["bash build.sh"]

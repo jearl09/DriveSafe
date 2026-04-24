@@ -1,15 +1,13 @@
 #!/bin/bash
-# Exit immediately if a command exits with a non-zero status
 set -e
 
 echo "--- CHECKING ENVIRONMENT ---"
-node -v || echo "Node not found"
-npm -v || echo "NPM not found"
-python3 --version || echo "Python not found"
+node -v
+python3 --version
 
 echo "--- BUILDING FRONTEND ---"
 cd frontend
-npm install
+npm install --omit=dev
 npm run build
 cd ..
 
