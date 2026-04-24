@@ -1,9 +1,10 @@
 [phases.setup]
-nixPkgs = ["nodejs", "python310", "python310Packages.pip", "gcc"]
+nixPkgs = ["nodejs", "python310", "python310Packages.pip", "gcc", "libmariadb-dev", "postgresql"]
 
 [phases.install]
 cmds = [
   "npm install --prefix frontend",
+  "python3 -m pip install --upgrade pip",
   "python3 -m pip install -r backend/requirements.txt"
 ]
 

@@ -4,12 +4,6 @@ flask-sqlalchemy
 flask-login
 pymysql
 cryptography
-mariadb
-gspread
-oauth2client
-google-api-python-client
-google-auth-httplib2
-google-auth-oauthlib
 python-dotenv
 requests
 scikit-learn
