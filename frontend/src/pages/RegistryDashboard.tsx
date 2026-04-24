@@ -140,24 +140,53 @@ const RegistryDashboard: React.FC = () => {
         }
     };
 
+    const handleResetStatus = async (project: Project) => {
+        if (!window.confirm(`Reset status for "${project.project_title}" back to Pending?`)) return;
+        try {
+            await axios.post(`http://localhost:5000/api/registry/reset`, { project }, { withCredentials: true });
+            setMessage({ text: "Status reset successfully.", type: 'success' });
+            fetchProjects(selectedYear, selectedWorkbookId);
+        } catch (err) {
+            setMessage({ text: "Failed to reset status.", type: 'error' });
+        }
+    };
+
     const getStatusBadge = (project: Project) => {
         const base = "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider";
         const status = project.status.toLowerCase();
         
-        if (status === 'pending') return <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>;
-        if (status === 'archived') return (
-            <div className="flex items-center gap-2">
-                <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>
-                {project.latest_version && project.latest_version > 1 && (
-                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
-                        V{project.latest_version}
-                    </span>
+        const isNotPending = status !== 'pending';
+
+        return (
+            <div className="flex items-center gap-4">
+                {status === 'pending' && <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>}
+                {status === 'archived' && (
+                    <div className="flex items-center gap-2">
+                        <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>
+                        {project.latest_version && project.latest_version > 1 && (
+                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
+                                V{project.latest_version}
+                            </span>
+                        )}
+                    </div>
+                )}
+                {status === 'duplicate' && <span className={`${base} bg-amber-50 text-amber-600`}>Duplicate</span>}
+                {status === 'failed' && <span className={`${base} bg-red-50 text-red-600`}>Action Required</span>}
+                {status !== 'pending' && status !== 'archived' && status !== 'duplicate' && status !== 'failed' && (
+                    <span className={`${base} bg-slate-100 text-slate-500`}>{project.status}</span>
+                )}
+
+                {isNotPending && (
+                    <button 
+                        onClick={() => handleResetStatus(project)}
+                        className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
+                        title="Change status back to Pending in Sheets"
+                    >
+                        Reset Status
+                    </button>
                 )}
             </div>
         );
-        if (status === 'duplicate') return <span className={`${base} bg-amber-50 text-amber-600`}>Duplicate</span>;
-        if (status === 'failed') return <span className={`${base} bg-red-50 text-red-600`}>Action Required</span>;
-        return <span className={`${base} bg-slate-100 text-slate-500`}>{project.status}</span>;
     };
 
     return (

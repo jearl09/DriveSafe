@@ -105,19 +105,37 @@ const BackupHistoryPage = () => {
                                     </td>
                                     <td style={{ padding: '15px', color: '#64748b', fontSize: '0.85rem' }}>{r.archived_at || 'N/A'}</td>
                                     <td style={{ padding: '15px' }}>
-                                        <div style={{ display: 'flex', gap: '5px' }}>
-                                            <button 
-                                                onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/srs`, '_blank')}
-                                                style={{ padding: '5px 8px', fontSize: '0.7rem', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                            >
-                                                SRS
-                                            </button>
-                                            <button 
-                                                onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/sdd`, '_blank')}
-                                                style={{ padding: '5px 8px', fontSize: '0.7rem', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                            >
-                                                SDD
-                                            </button>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: 'bold', minWidth: '30px' }}>SRS:</span>
+                                                <button 
+                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/srs?preview=1`, '_blank')}
+                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                >
+                                                    View
+                                                </button>
+                                                <button 
+                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/srs`, '_blank')}
+                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                >
+                                                    Download
+                                                </button>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                                                <span style={{ fontSize: '0.65rem', fontWeight: 'bold', minWidth: '30px' }}>SDD:</span>
+                                                <button 
+                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/sdd?preview=1`, '_blank')}
+                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                >
+                                                    View
+                                                </button>
+                                                <button 
+                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/sdd`, '_blank')}
+                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                                >
+                                                    Download
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>

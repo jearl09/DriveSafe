@@ -203,6 +203,7 @@ def download_from_db(ledger_id, doc_type):
     import io
 
     record = ArchivalLedger.query.get_or_404(ledger_id)
+    preview = request.args.get('preview') == '1'
     
     binary_data = None
     if doc_type == 'srs':
@@ -220,9 +221,34 @@ def download_from_db(ledger_id, doc_type):
     return send_file(
         io.BytesIO(binary_data),
         mimetype='application/pdf',
-        as_attachment=True,
+        as_attachment=not preview,
         download_name=filename
     )
+
+@registry_bp.route('/api/registry/reset', methods=['POST'])
+@login_required
+def reset_project_status():
+    if current_user.role != 'teacher':
+        return jsonify({"error": "Unauthorized"}), 403
+        
+    project = request.json.get('project')
+    if not project:
+        return jsonify({"error": "No project provided"}), 400
+        
+    try:
+        sheets_service, _ = get_services()
+        # Reset status to 'Pending' and clear the local paths in the sheet
+        sheets_service.update_status(
+            project['academic_year'], 
+            project['row_index'], 
+            'Pending', 
+            srs_path='', 
+            sdd_path='', 
+            error_msg=''
+        )
+        return jsonify({"message": "Project status reset to Pending successfully."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @registry_bp.route('/api/registry/ledger', methods=['GET'])
 @login_required
