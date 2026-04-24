@@ -64,10 +64,19 @@ def google_auth():
     code = request.json.get('code')
     try:
         from google_auth_oauthlib.flow import Flow 
+        import json
         secret_path = os.path.join(os.path.dirname(__file__), "client_secret.json")
         
+        # Check if file exists; if not, try to create it from Env Var
         if not os.path.exists(secret_path):
-            return jsonify({"error": "client_secret.json not found on backend."}), 400
+            env_secret = os.getenv('GOOGLE_CLIENT_SECRET_JSON')
+            if env_secret:
+                with open(secret_path, 'w') as f:
+                    # Validate it's proper JSON before writing
+                    json.loads(env_secret) 
+                    f.write(env_secret)
+            else:
+                return jsonify({"error": "client_secret.json not found on backend. Please set GOOGLE_CLIENT_SECRET_JSON environment variable."}), 400
 
         # We request scopes for Drive and Spreadsheets to allow the app to act as the user
         flow = Flow.from_client_secrets_file(
