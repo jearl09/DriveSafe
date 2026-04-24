@@ -23,9 +23,11 @@ app = Flask(__name__,
 # --- DATABASE CONFIG ---
 raw_db_url = os.getenv('DATABASE_URL')
 if not raw_db_url:
-    raise RuntimeError("❌ CRITICAL ERROR: DATABASE_URL environment variable is missing! Please set it in Railway.")
+    raise RuntimeError("❌ CRITICAL ERROR: DATABASE_URL environment variable is missing!")
 
-print(f"✅ DATABASE_URL detected. Starting initialization...")
+# Mask password for logging
+masked_url = raw_db_url.split('@')[-1] if '@' in raw_db_url else raw_db_url
+print(f"✅ DATABASE_URL detected. Target: {masked_url}")
 
 # Fix for Render/Postgres URL compatibility
 if raw_db_url.startswith("postgres://"):
