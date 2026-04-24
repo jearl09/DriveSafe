@@ -27,30 +27,52 @@ def get_robust_database_uri():
     # 1. Fetch and clean the environment variable
     raw_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
     
-    # 2. Fallback to SQLite if missing
+    # 2. Hard Fallback if completely empty
     if not raw_url:
-        print("⚠️  DATABASE_URL is empty or not set. Falling back to local SQLite.", flush=True)
+        print("⚠️ [DATABASE] URL is empty. Using SQLite fallback.", flush=True)
         return 'sqlite:///drivesafe_fallback.db'
     
-    # 3. Protocol Mapping (Standardizing on mysql+pymysql)
+    # 3. Protocol Mapping
     if raw_url.startswith('mariadb'):
-        raw_db_url = re.sub(r'^mariadb(\+mariadbconnector)?://', 'mysql+pymysql://', raw_url)
+        db_url = re.sub(r'^mariadb(\+mariadbconnector)?://', 'mysql+pymysql://', raw_url)
     elif raw_url.startswith('mysql://'):
-        raw_db_url = raw_url.replace('mysql://', 'mysql+pymysql://', 1)
+        db_url = raw_url.replace('mysql://', 'mysql+pymysql://', 1)
     elif raw_url.startswith('postgres://'):
-        raw_db_url = raw_url.replace('postgres://', 'postgresql://', 1)
+        db_url = raw_url.replace('postgres://', 'postgresql://', 1)
     else:
-        raw_db_url = raw_url
+        db_url = raw_url
 
-    # 4. Masking for Debugging (Hides password in logs)
+    # 4. STRICT VALIDATION
+    error_found = False
+    
+    # Check for "Double Protocol" bug (e.g. mysql+pymysql://mysql://)
+    if db_url.count('://') > 1:
+        print(f"❌ [DATABASE] Malformed URL (Multiple Protocols detected).", flush=True)
+        error_found = True
+    
+    # Check for "Empty Host" bug (e.g. mysql+pymysql://)
+    if len(db_url) < 20 and 'sqlite' not in db_url:
+        print(f"❌ [DATABASE] URL is too short to be valid.", flush=True)
+        error_found = True
+
+    # Check for "Localhost in Cloud" bug
+    if ("localhost" in db_url or "127.0.0.1" in db_url) and os.getenv('PORT'):
+        print(f"❌ [DATABASE] Rejected 'localhost' in production environment.", flush=True)
+        error_found = True
+
+    # 5. Final Decision
+    if error_found:
+        print("⚠️ [DATABASE] Reverting to SQLite to prevent crash.", flush=True)
+        return 'sqlite:///drivesafe_cloud_fallback.db'
+
+    # Mask for logging
     try:
-        masked = raw_db_url.split('@')[-1] if '@' in raw_db_url else raw_db_url
-        protocol = raw_db_url.split('://')[0]
-        print(f"🚀 VAULT: Connecting to {protocol}://****@{masked}", flush=True)
-    except Exception:
-        print("🚀 VAULT: Database URI detected and cleaned.", flush=True)
+        masked = db_url.split('@')[-1] if '@' in db_url else db_url
+        print(f"🚀 [VAULT] Active Connection: {db_url.split('://')[0]}://****@{masked}", flush=True)
+    except:
+        print("🚀 [VAULT] Database URI validated.", flush=True)
         
-    return raw_db_url
+    return db_url
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = get_robust_database_uri()
