@@ -2,7 +2,7 @@ import os
 # CRITICAL: This must be set before other imports to handle Google's scope expansion
 os.environ['OAUTHLIB_RELAX_TOKEN_SCOPE'] = '1'
 
-from flask import Flask, request, jsonify, session
+from flask import Flask, request, jsonify, session, send_from_directory
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
 from google.oauth2.credentials import Credentials
@@ -15,7 +15,11 @@ dotenv.load_dotenv()
 
 from models import db, User, ArchivalLedger
 
-app = Flask(__name__)
+# Point static_folder to the frontend build directory
+app = Flask(__name__, 
+            static_folder='../frontend/dist',
+            static_url_path='/')
+
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'mysql+pymysql://root:123Earl.@localhost/drivesafe_prod')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -38,6 +42,15 @@ def unauthorized():
 # Register Registry Blueprint
 from registry_routes import registry_bp
 app.register_blueprint(registry_bp)
+
+# --- FRONTEND ROUTES ---
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists(app.static_folder + '/' + path):
+        return send_from_directory(app.static_folder, path)
+    else:
+        return send_from_directory(app.static_folder, 'index.html')
 
 # --- AUTH ROUTES ---
 @app.route('/auth/google', methods=['POST'])

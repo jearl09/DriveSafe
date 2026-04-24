@@ -13,11 +13,17 @@ COL_PROJECT_ID = 0
 COL_PROJECT_TITLE = 1
 COL_SRS_LINK = 2
 COL_SDD_LINK = 3
-COL_STATUS = 4
-COL_LAST_UPDATED = 5
-COL_SRS_PATH = 6
-COL_SDD_PATH = 7
-COL_ERROR = 8
+COL_SPMP_LINK = 4
+COL_STD_LINK = 5
+COL_RI_LINK = 6
+COL_STATUS = 7
+COL_LAST_UPDATED = 8
+COL_SRS_PATH = 9
+COL_SDD_PATH = 10
+COL_SPMP_PATH = 11
+COL_STD_PATH = 12
+COL_RI_PATH = 13
+COL_ERROR = 14
 
 class RegistrySheetsService:
     def __init__(self, service_account_json_path=None, sheet_id=None, user_credentials=None):
@@ -60,6 +66,9 @@ class RegistrySheetsService:
                         'project_title': row[COL_PROJECT_TITLE] if len(row) > COL_PROJECT_TITLE else 'Untitled',
                         'srs_link': row[COL_SRS_LINK] if len(row) > COL_SRS_LINK else '',
                         'sdd_link': row[COL_SDD_LINK] if len(row) > COL_SDD_LINK else '',
+                        'spmp_link': row[COL_SPMP_LINK] if len(row) > COL_SPMP_LINK else '',
+                        'std_link': row[COL_STD_LINK] if len(row) > COL_STD_LINK else '',
+                        'ri_link': row[COL_RI_LINK] if len(row) > COL_RI_LINK else '',
                         'status': row[COL_STATUS],
                         'academic_year': sheet_name
                     }
@@ -69,24 +78,31 @@ class RegistrySheetsService:
             print(f"Error fetching projects from {sheet_name}: {e}")
             raise e
 
-    def update_status(self, sheet_name, row_index, status, srs_path='', sdd_path='', error_msg=''):
+    def update_status(self, sheet_name, row_index, status, srs_path='', sdd_path='', spmp_path='', std_path='', ri_path='', error_msg=''):
         """Update the row with the current status and archival details"""
         worksheet = self.workbook.worksheet(sheet_name)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Batch update for efficiency
-        # Status (E), Last Updated (F), SRS Path (G), SDD Path (H), Error (I)
-        # 1-indexed for cell names: A=1, B=2, C=3, D=4, E=5, F=6, G=7, H=8, I=9
+        # Status (H), Last Updated (I), SRS Path (J), SDD Path (K), SPMP (L), STD (M), RI (N), Error (O)
+        # H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15
         updates = [
-            {'range': f'E{row_index}', 'values': [[status]]},
-            {'range': f'F{row_index}', 'values': [[timestamp]]},
-            {'range': f'G{row_index}', 'values': [[srs_path]]},
-            {'range': f'H{row_index}', 'values': [[sdd_path]]},
-            {'range': f'I{row_index}', 'values': [[error_msg]]}
+            {'range': f'H{row_index}', 'values': [[status]]},
+            {'range': f'I{row_index}', 'values': [[timestamp]]},
+            {'range': f'J{row_index}', 'values': [[srs_path]]},
+            {'range': f'K{row_index}', 'values': [[sdd_path]]},
+            {'range': f'L{row_index}', 'values': [[spmp_path]]},
+            {'range': f'M{row_index}', 'values': [[std_path]]},
+            {'range': f'N{row_index}', 'values': [[ri_path]]},
+            {'range': f'O{row_index}', 'values': [[error_msg]]}
         ]
         
         worksheet.batch_update(updates)
         logger.info(f"Updated row {row_index} in {sheet_name} with status: {status}")
+
+    def get_workbook_name(self):
+        """Get the title of the spreadsheet"""
+        return self.workbook.title if self.workbook else "Unknown_Workbook"
 
     def get_all_sheet_names(self):
         """List all worksheet names in the workbook (e.g., '2024-2025', '2025-2026')"""

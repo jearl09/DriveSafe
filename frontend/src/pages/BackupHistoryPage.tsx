@@ -11,8 +11,14 @@ interface LedgerRecord {
     version: number;
     srs_path: string;
     sdd_path: string;
+    spmp_path: string;
+    std_path: string;
+    ri_path: string;
     srs_hash: string;
     sdd_hash: string;
+    spmp_hash: string;
+    std_hash: string;
+    ri_hash: string;
     error: string;
     archived_at: string;
 }
@@ -28,7 +34,7 @@ const BackupHistoryPage = () => {
     const fetchLedger = async () => {
         setLoading(true);
         try {
-            const res = await axios.get("http://localhost:5000/api/registry/ledger", { withCredentials: true });
+            const res = await axios.get("/api/registry/ledger", { withCredentials: true });
             setRecords(res.data);
         } catch (err) {
             console.error("Failed to fetch ledger", err);
@@ -96,46 +102,39 @@ const BackupHistoryPage = () => {
                                         {r.error && <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '5px', maxWidth: '150px' }}>{r.error}</div>}
                                     </td>
                                     <td style={{ padding: '15px', fontSize: '0.7rem', color: '#64748b', maxWidth: '250px' }}>
-                                        <div style={{ marginBottom: '5px' }}><strong>SRS:</strong> {r.srs_path || 'N/A'}</div>
-                                        <div><strong>SDD:</strong> {r.sdd_path || 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>SRS:</strong> {r.srs_path || 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>SDD:</strong> {r.sdd_path || 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>SPMP:</strong> {r.spmp_path || 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>STD:</strong> {r.std_path || 'N/A'}</div>
+                                        <div><strong>RI:</strong> {r.ri_path || 'N/A'}</div>
                                     </td>
                                     <td style={{ padding: '15px', fontSize: '0.65rem', color: '#64748b', fontFamily: 'monospace', maxWidth: '200px' }}>
-                                        <div style={{ marginBottom: '5px' }}><strong>SRS:</strong> {r.srs_hash ? r.srs_hash.substring(0, 16) + '...' : 'N/A'}</div>
-                                        <div><strong>SDD:</strong> {r.sdd_hash ? r.sdd_hash.substring(0, 16) + '...' : 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>SRS:</strong> {r.srs_hash ? r.srs_hash.substring(0, 8) + '...' : 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>SDD:</strong> {r.sdd_hash ? r.sdd_hash.substring(0, 8) + '...' : 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>SPMP:</strong> {r.spmp_hash ? r.spmp_hash.substring(0, 8) + '...' : 'N/A'}</div>
+                                        <div style={{ marginBottom: '2px' }}><strong>STD:</strong> {r.std_hash ? r.std_hash.substring(0, 8) + '...' : 'N/A'}</div>
+                                        <div><strong>RI:</strong> {r.ri_hash ? r.ri_hash.substring(0, 8) + '...' : 'N/A'}</div>
                                     </td>
                                     <td style={{ padding: '15px', color: '#64748b', fontSize: '0.85rem' }}>{r.archived_at || 'N/A'}</td>
                                     <td style={{ padding: '15px' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.65rem', fontWeight: 'bold', minWidth: '30px' }}>SRS:</span>
-                                                <button 
-                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/srs?preview=1`, '_blank')}
-                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                                >
-                                                    View
-                                                </button>
-                                                <button 
-                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/srs`, '_blank')}
-                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                                >
-                                                    Download
-                                                </button>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                                                <span style={{ fontSize: '0.65rem', fontWeight: 'bold', minWidth: '30px' }}>SDD:</span>
-                                                <button 
-                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/sdd?preview=1`, '_blank')}
-                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                                >
-                                                    View
-                                                </button>
-                                                <button 
-                                                    onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/sdd`, '_blank')}
-                                                    style={{ padding: '4px 8px', fontSize: '0.65rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
-                                                >
-                                                    Download
-                                                </button>
-                                            </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            {['srs', 'sdd', 'spmp', 'std', 'ri'].map(dt => (
+                                                <div key={dt} style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                    <span style={{ fontSize: '0.6rem', fontWeight: 'bold', minWidth: '35px', textTransform: 'uppercase' }}>{dt}:</span>
+                                                    <button 
+                                                        onClick={() => window.open(`/api/registry/download/${r.id}/${dt}?preview=1`, '_blank')}
+                                                        style={{ padding: '2px 6px', fontSize: '0.6rem', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: '4px', cursor: 'pointer' }}
+                                                    >
+                                                        View
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => window.open(`/api/registry/download/${r.id}/${dt}`, '_blank')}
+                                                        style={{ padding: '2px 6px', fontSize: '0.6rem', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', cursor: 'pointer' }}
+                                                    >
+                                                        Down
+                                                    </button>
+                                                </div>
+                                            ))}
                                         </div>
                                     </td>
                                 </tr>

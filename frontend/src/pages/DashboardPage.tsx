@@ -37,8 +37,8 @@ const DashboardPage: React.FC = () => {
     const fetchData = async () => {
       try {
         const [userRes, statsRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/user-info', { withCredentials: true }),
-          axios.get('http://localhost:5000/api/registry/stats', { withCredentials: true })
+          axios.get('/api/user-info', { withCredentials: true }),
+          axios.get('/api/registry/stats', { withCredentials: true })
         ]);
         setUser(userRes.data);
         setStats(statsRes.data);

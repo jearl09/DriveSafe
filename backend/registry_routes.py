@@ -157,10 +157,17 @@ def archive_selected():
     user_creds = get_user_creds()
     sheet_id = request.json.get('sheet_id') or request.args.get('sheet_id') or os.getenv('SHEET_ID')
     
+    # Get workbook name for folder structure
+    try:
+        sheets_service, _ = get_services(requested_sheet_id=sheet_id, provided_user_creds=user_creds)
+        workbook_name = sheets_service.get_workbook_name()
+    except:
+        workbook_name = "Archives"
+
     # Get the actual app object to pass into the thread
     app = current_app._get_current_object()
     
-    def process_task(app_context, project_list, creds, sid):
+    def process_task(app_context, project_list, creds, sid, wb_name):
         with app_context.app_context():
             # Pass sid and creds explicitly to get_services
             sheets_service, engine = get_services(requested_sheet_id=sid, provided_user_creds=creds)
@@ -170,27 +177,29 @@ def archive_selected():
                     sheets_service.update_status(p['academic_year'], p['row_index'], 'Processing')
                     
                     # Run archival engine
-                    result = engine.archive_project(p)
+                    result = engine.archive_project(p, workbook_name=wb_name)
 
                     # Update Sheet with final results
+                    paths = result.get('paths', {})
                     sheets_service.update_status(
                         p['academic_year'], 
                         p['row_index'], 
                         result['status'].capitalize(),
-                        srs_path=result['srs_path'] or '',
-                        sdd_path=result['sdd_path'] or '',
+                        srs_path=paths.get('srs', ''),
+                        sdd_path=paths.get('sdd', ''),
+                        spmp_path=paths.get('spmp', ''),
+                        std_path=paths.get('std', ''),
+                        ri_path=paths.get('ri', ''),
                         error_msg=result['error']
                     )
 
                 except Exception as e:
                     print(f"Failed to process {p.get('project_title')}: {e}")
-                    # Re-get services if session expired or similar? 
-                    # For now just use the existing service.
                     try:
                         sheets_service.update_status(p['academic_year'], p['row_index'], 'Failed', error_msg=str(e))
                     except: pass
 
-    thread = threading.Thread(target=process_task, args=(app, projects, user_creds, sheet_id))
+    thread = threading.Thread(target=process_task, args=(app, projects, user_creds, sheet_id, workbook_name))
     thread.start()
     
     return jsonify({"message": f"Started archival for {len(projects)} projects in background."}), 202
@@ -201,26 +210,36 @@ def download_from_db(ledger_id, doc_type):
     from models import ArchivalLedger
     from flask import send_file
     import io
+    import mimetypes
 
     record = ArchivalLedger.query.get_or_404(ledger_id)
     preview = request.args.get('preview') == '1'
     
     binary_data = None
-    if doc_type == 'srs':
-        binary_data = record.srs_binary
-    elif doc_type == 'sdd':
-        binary_data = record.sdd_binary
+    path_field = f"{doc_type}_local_path"
+    binary_field = f"{doc_type}_binary"
+    
+    binary_data = getattr(record, binary_field, None)
+    file_path = getattr(record, path_field, '')
     
     if not binary_data:
-        return jsonify({"error": "File not found in database"}), 404
+        return jsonify({"error": f"{doc_type.upper()} file not found in database"}), 404
 
+    # Get extension from the saved path
+    ext = os.path.splitext(file_path)[1] if file_path else ".pdf"
+    
     # Create a safe filename
     clean_title = record.project_title.replace(' ', '_').replace('/', '_')
-    filename = f"{clean_title}_{doc_type.upper()}_v{record.version}.pdf"
+    filename = f"{clean_title}_{doc_type.upper()}_v{record.version}{ext}"
+
+    # Determine mime type
+    mime_type, _ = mimetypes.guess_type(filename)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
 
     return send_file(
         io.BytesIO(binary_data),
-        mimetype='application/pdf',
+        mimetype=mime_type,
         as_attachment=not preview,
         download_name=filename
     )
@@ -237,13 +256,16 @@ def reset_project_status():
         
     try:
         sheets_service, _ = get_services()
-        # Reset status to 'Pending' and clear the local paths in the sheet
+        # Reset status to 'Pending' and clear ALL local paths in the sheet
         sheets_service.update_status(
             project['academic_year'], 
             project['row_index'], 
             'Pending', 
             srs_path='', 
             sdd_path='', 
+            spmp_path='',
+            std_path='',
+            ri_path='',
             error_msg=''
         )
         return jsonify({"message": "Project status reset to Pending successfully."})
@@ -263,7 +285,10 @@ def get_ledger():
     # This makes the API much faster.
     records = ArchivalLedger.query.options(
         defer(ArchivalLedger.srs_binary), 
-        defer(ArchivalLedger.sdd_binary)
+        defer(ArchivalLedger.sdd_binary),
+        defer(ArchivalLedger.spmp_binary),
+        defer(ArchivalLedger.std_binary),
+        defer(ArchivalLedger.ri_binary)
     ).order_by(ArchivalLedger.id.desc()).all()
     
     return jsonify([{
@@ -275,8 +300,14 @@ def get_ledger():
         "version": r.version,
         "srs_path": r.srs_local_path,
         "sdd_path": r.sdd_local_path,
+        "spmp_path": r.spmp_local_path,
+        "std_path": r.std_local_path,
+        "ri_path": r.ri_local_path,
         "srs_hash": r.srs_hash,
         "sdd_hash": r.sdd_hash,
+        "spmp_hash": r.spmp_hash,
+        "std_hash": r.std_hash,
+        "ri_hash": r.ri_hash,
         "error": r.error_message,
         "archived_at": r.archived_at.strftime("%Y-%m-%d %H:%M:%S") if r.archived_at else None
     } for r in records])

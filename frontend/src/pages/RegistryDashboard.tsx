@@ -16,6 +16,9 @@ interface Project {
     project_title: string;
     srs_link: string;
     sdd_link: string;
+    spmp_link: string;
+    std_link: string;
+    ri_link: string;
     status: string;
     academic_year: string;
     latest_version?: number;
@@ -56,27 +59,27 @@ const RegistryDashboard: React.FC = () => {
         if (selectedYear && selectedWorkbookId) {
             fetchProjects(selectedYear, selectedWorkbookId);
         }
-    }, [selectedYear]);
+    }, [selectedYear, selectedWorkbookId]);
 
     const fetchWorkbooks = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/registry/list-sheets`, { withCredentials: true });
+            const res = await axios.get(`/api/registry/list-sheets`, { withCredentials: true });
             setWorkbooks(res.data);
             if (res.data.length > 0) {
                 setSelectedWorkbookId(res.data[0].id);
             }
-        } catch (err) {
+        } catch {
             setMessage({ text: "Failed to load Google Sheets from Drive.", type: 'error' });
         }
     };
 
     const fetchYears = async (workbookId: string) => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/registry/years?sheet_id=${workbookId}`, { withCredentials: true });
+            const res = await axios.get(`/api/registry/years?sheet_id=${workbookId}`, { withCredentials: true });
             setYears(res.data);
             if (res.data.length > 0) setSelectedYear(res.data[0]);
             else setSelectedYear('');
-        } catch (err) {
+        } catch {
             setMessage({ text: "Failed to load years from the selected sheet.", type: 'error' });
             setYears([]);
             setSelectedYear('');
@@ -86,11 +89,11 @@ const RegistryDashboard: React.FC = () => {
     const fetchProjects = async (year: string, workbookId: string) => {
         setLoading(true);
         try {
-            const res = await axios.get(`http://localhost:5000/api/registry/projects?year=${year}&sheet_id=${workbookId}`, { withCredentials: true });
+            const res = await axios.get(`/api/registry/projects?year=${year}&sheet_id=${workbookId}`, { withCredentials: true });
             setProjects(res.data);
             setSelectedRows([]);
             setValidationResults({});
-        } catch (err) {
+        } catch {
             setMessage({ text: "Failed to load projects from sheet.", type: 'error' });
         } finally {
             setLoading(false);
@@ -110,12 +113,12 @@ const RegistryDashboard: React.FC = () => {
         if (linksToValidate.length === 0) return;
         setLoading(true);
         try {
-            const res = await axios.post(`http://localhost:5000/api/registry/validate`, { 
+            const res = await axios.post(`/api/registry/validate`, { 
                 links: linksToValidate,
                 sheet_id: selectedWorkbookId 
             }, { withCredentials: true });
             setValidationResults(res.data);
-        } catch (err) {
+        } catch {
             setMessage({ text: "Validation failed.", type: 'error' });
         } finally {
             setLoading(false);
@@ -127,13 +130,13 @@ const RegistryDashboard: React.FC = () => {
         if (selectedProjects.length === 0) return;
         setIsProcessing(true);
         try {
-            await axios.post(`http://localhost:5000/api/registry/archive`, { 
+            await axios.post(`/api/registry/archive`, { 
                 projects: selectedProjects,
                 sheet_id: selectedWorkbookId
             }, { withCredentials: true });
             setMessage({ text: "Archival sequence initiated. Tracking progress in Sheets.", type: 'success' });
             setTimeout(() => fetchProjects(selectedYear, selectedWorkbookId), 3000);
-        } catch (err) {
+        } catch {
             setMessage({ text: "Archival request failed.", type: 'error' });
         } finally {
             setIsProcessing(false);
@@ -143,10 +146,10 @@ const RegistryDashboard: React.FC = () => {
     const handleResetStatus = async (project: Project) => {
         if (!window.confirm(`Reset status for "${project.project_title}" back to Pending?`)) return;
         try {
-            await axios.post(`http://localhost:5000/api/registry/reset`, { project }, { withCredentials: true });
+            await axios.post(`/api/registry/reset`, { project }, { withCredentials: true });
             setMessage({ text: "Status reset successfully.", type: 'success' });
             fetchProjects(selectedYear, selectedWorkbookId);
-        } catch (err) {
+        } catch {
             setMessage({ text: "Failed to reset status.", type: 'error' });
         }
     };
@@ -291,8 +294,11 @@ const RegistryDashboard: React.FC = () => {
                                     </th>
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Project ID</th>
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Project Title</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SRS Doc</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SDD Doc</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SRS</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SDD</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SPMP</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">STD</th>
+                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">RI</th>
                                     <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
                                 </tr>
                             </thead>
@@ -356,6 +362,48 @@ const RegistryDashboard: React.FC = () => {
                                                     {validationResults[p.sdd_link] && (
                                                         <span className={`text-[10px] font-medium ${validationResults[p.sdd_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
                                                             {validationResults[p.sdd_link]}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {p.spmp_link ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <a href={p.spmp_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                                                        <ExternalLink className="w-3 h-3" /> View Source
+                                                    </a>
+                                                    {validationResults[p.spmp_link] && (
+                                                        <span className={`text-[10px] font-medium ${validationResults[p.spmp_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {validationResults[p.spmp_link]}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {p.std_link ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <a href={p.std_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                                                        <ExternalLink className="w-3 h-3" /> View Source
+                                                    </a>
+                                                    {validationResults[p.std_link] && (
+                                                        <span className={`text-[10px] font-medium ${validationResults[p.std_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {validationResults[p.std_link]}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            {p.ri_link ? (
+                                                <div className="flex flex-col gap-1">
+                                                    <a href={p.ri_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                                                        <ExternalLink className="w-3 h-3" /> View Source
+                                                    </a>
+                                                    {validationResults[p.ri_link] && (
+                                                        <span className={`text-[10px] font-medium ${validationResults[p.ri_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {validationResults[p.ri_link]}
                                                         </span>
                                                     )}
                                                 </div>

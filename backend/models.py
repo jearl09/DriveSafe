@@ -20,13 +20,28 @@ class ArchivalLedger(db.Model):
     project_title = db.Column(db.String(255), nullable=False)
     academic_year = db.Column(db.String(50), nullable=False)
     srs_original_url = db.Column(db.String(500), nullable=True)
-    sdd_original_url = db.Column(db.String(500), nullable=True) # Renamed
+    sdd_original_url = db.Column(db.String(500), nullable=True)
+    spmp_original_url = db.Column(db.String(500), nullable=True)
+    std_original_url = db.Column(db.String(500), nullable=True)
+    ri_original_url = db.Column(db.String(500), nullable=True)
+
     srs_local_path = db.Column(db.String(500), nullable=True)
-    sdd_local_path = db.Column(db.String(500), nullable=True) # Renamed
+    sdd_local_path = db.Column(db.String(500), nullable=True)
+    spmp_local_path = db.Column(db.String(500), nullable=True)
+    std_local_path = db.Column(db.String(500), nullable=True)
+    ri_local_path = db.Column(db.String(500), nullable=True)
+
     srs_hash = db.Column(db.String(64), nullable=True)
-    sdd_hash = db.Column(db.String(64), nullable=True) # Renamed
-    srs_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True) # Store actual PDF
-    sdd_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True) # Store actual PDF
+    sdd_hash = db.Column(db.String(64), nullable=True)
+    spmp_hash = db.Column(db.String(64), nullable=True)
+    std_hash = db.Column(db.String(64), nullable=True)
+    ri_hash = db.Column(db.String(64), nullable=True)
+
+    srs_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
+    sdd_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
+    spmp_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
+    std_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
+    ri_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
     status = db.Column(db.String(50), default='pending')
     version = db.Column(db.Integer, default=1)
     error_message = db.Column(db.Text, nullable=True)

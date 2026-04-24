@@ -9,13 +9,13 @@ const LoginPage = () => {
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
     scope: "openid email profile https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets https://spreadsheets.google.com/feeds",
-    // @ts-ignore
+    // @ts-expect-error: prompt is required for consent but not in type
     prompt: 'consent', 
     onSuccess: async (codeResponse) => {
       console.log("Google Code Received:", codeResponse.code);
       
       try {
-        const response = await fetch('http://localhost:5000/auth/google', {
+        const response = await fetch('/auth/google', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

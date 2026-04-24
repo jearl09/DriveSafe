@@ -1,11 +1,20 @@
 // FeaturesPage.tsx
 // Features page for DriveSafe
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./FeaturesPage.css";
 
+interface Feature {
+  id: number;
+  icon: string;
+  title: string;
+  description: string;
+  list: string[];
+  details: string;
+}
+
 // Data structure for features to make mapping easier
-const featuresData = [
+const featuresData: Feature[] = [
   {
     id: 1,
     icon: "🔒",
@@ -58,16 +67,27 @@ const featuresData = [
 ];
 
 const FeaturesPage = () => {
-  const [selectedFeature, setSelectedFeature] = useState<any>(null);
+  const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
 
-  const openModal = (feature: any) => {
+  useEffect(() => {
+    if (selectedFeature) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    // Cleanup function to ensure overflow is reset if component unmounts
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedFeature]);
+
+  const openModal = (feature: Feature) => {
     setSelectedFeature(feature);
-    document.body.style.overflow = 'hidden'; // Prevent scrolling when modal is open
   };
 
   const closeModal = () => {
     setSelectedFeature(null);
-    document.body.style.overflow = 'unset';
   };
 
   return (
