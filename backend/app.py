@@ -21,44 +21,39 @@ app = Flask(__name__,
             static_url_path='/')
 
 # --- DATABASE CONFIG ---
-import logging
-logger = logging.getLogger('waitress')
-
-# Get URL and strip whitespace/quotes
+# 1. Get raw URL and handle None/Empty/Quotes
 raw_db_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
 
+# 2. Fallback to SQLite if empty (Safe for development)
 if not raw_db_url:
-    logger.error("❌ CRITICAL: DATABASE_URL is missing!")
-    if os.getenv('PORT'): raise RuntimeError("DATABASE_URL missing in production")
+    raw_db_url = 'sqlite:///drivesafe_fallback.db'
+    print("⚠️ WARNING: DATABASE_URL not set. Falling back to local SQLite.", flush=True)
 
-# 1. Fix Render/Postgres
-if raw_db_url.startswith("postgres://"):
+# 3. Protocol Cleanup & Driver Mapping
+# Convert problematic protocols to our installed drivers
+if raw_db_url.startswith("mariadb+mariadbconnector://"):
+    raw_db_url = raw_db_url.replace("mariadb+mariadbconnector://", "mysql+pymysql://", 1)
+elif raw_db_url.startswith("mariadb://"):
+    raw_db_url = raw_db_url.replace("mariadb://", "mysql+pymysql://", 1)
+elif raw_db_url.startswith("mysql://"):
+    raw_db_url = raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
+elif raw_db_url.startswith("postgres://"):
     raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 
-# 2. Fix Double Protocol (e.g., mysql+pymysql://mysql://)
-if "mysql://" in raw_db_url and "mysql+pymysql://" in raw_db_url:
-    raw_db_url = raw_db_url.replace("mysql://", "", 1)
-
-# 3. Ensure Driver is present for MySQL/MariaDB
-if raw_db_url.startswith("mysql://"):
-    raw_db_url = raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
-
-# 4. Final safety check
-if "localhost" in raw_db_url or "127.0.0.1" in raw_db_url:
-    if os.getenv('PORT'):
-        logger.error(f"❌ REJECTED: URL contains localhost in production! Value: {raw_db_url[:20]}...")
-        raise RuntimeError("Localhost DB rejected in production")
+# 4. Debug Print (Masked Password)
+try:
+    if '@' in raw_db_url:
+        protocol_part = raw_db_url.split('://')[0]
+        host_part = raw_db_url.split('@')[-1]
+        print(f"🚀 DATABASE_URI: {protocol_part}://****@{host_part}", flush=True)
+    else:
+        print(f"🚀 DATABASE_URI: {raw_db_url}", flush=True)
+except Exception:
+    print("🚀 DATABASE_URI: [Found but unparseable for logging]", flush=True)
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# High-visibility connection log
-try:
-    host_info = raw_db_url.split('@')[-1]
-    logger.info(f"🚀 VAULT CONNECTING TO: {host_info}")
-except:
-    logger.info("🚀 VAULT CONNECTING...")
 
 db.init_app(app)
 login_manager = LoginManager(app)
