@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://drivesafe-ranv.onrender.com/api/:path*"
+    },
+    {
+      "source": "/auth/:path*",
+      "destination": "https://drivesafe-ranv.onrender.com/auth/:path*"
+    }
+  ]
+}
