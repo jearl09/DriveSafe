@@ -20,39 +20,40 @@ app = Flask(__name__,
             static_folder='../frontend/dist',
             static_url_path='/')
 
-# --- DATABASE CONFIG ---
-# 1. Get raw URL and handle None/Empty/Quotes
-raw_db_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
+# --- DATABASE CONFIGURATION ---
+import re
 
-# 2. Fallback to SQLite if empty (Safe for development)
-if not raw_db_url:
-    raw_db_url = 'sqlite:///drivesafe_fallback.db'
-    print("⚠️ WARNING: DATABASE_URL not set. Falling back to local SQLite.", flush=True)
-
-# 3. Protocol Cleanup & Driver Mapping
-# Convert problematic protocols to our installed drivers
-if raw_db_url.startswith("mariadb+mariadbconnector://"):
-    raw_db_url = raw_db_url.replace("mariadb+mariadbconnector://", "mysql+pymysql://", 1)
-elif raw_db_url.startswith("mariadb://"):
-    raw_db_url = raw_db_url.replace("mariadb://", "mysql+pymysql://", 1)
-elif raw_db_url.startswith("mysql://"):
-    raw_db_url = raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
-elif raw_db_url.startswith("postgres://"):
-    raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
-
-# 4. Debug Print (Masked Password)
-try:
-    if '@' in raw_db_url:
-        protocol_part = raw_db_url.split('://')[0]
-        host_part = raw_db_url.split('@')[-1]
-        print(f"🚀 DATABASE_URI: {protocol_part}://****@{host_part}", flush=True)
+def get_robust_database_uri():
+    # 1. Fetch and clean the environment variable
+    raw_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
+    
+    # 2. Fallback to SQLite if missing
+    if not raw_url:
+        print("⚠️  DATABASE_URL is empty or not set. Falling back to local SQLite.", flush=True)
+        return 'sqlite:///drivesafe_fallback.db'
+    
+    # 3. Protocol Mapping (Standardizing on mysql+pymysql)
+    if raw_url.startswith('mariadb'):
+        raw_db_url = re.sub(r'^mariadb(\+mariadbconnector)?://', 'mysql+pymysql://', raw_url)
+    elif raw_url.startswith('mysql://'):
+        raw_db_url = raw_url.replace('mysql://', 'mysql+pymysql://', 1)
+    elif raw_url.startswith('postgres://'):
+        raw_db_url = raw_url.replace('postgres://', 'postgresql://', 1)
     else:
-        print(f"🚀 DATABASE_URI: {raw_db_url}", flush=True)
-except Exception:
-    print("🚀 DATABASE_URI: [Found but unparseable for logging]", flush=True)
+        raw_db_url = raw_url
+
+    # 4. Masking for Debugging (Hides password in logs)
+    try:
+        masked = raw_db_url.split('@')[-1] if '@' in raw_db_url else raw_db_url
+        protocol = raw_db_url.split('://')[0]
+        print(f"🚀 VAULT: Connecting to {protocol}://****@{masked}", flush=True)
+    except Exception:
+        print("🚀 VAULT: Database URI detected and cleaned.", flush=True)
+        
+    return raw_db_url
 
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
-app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
+app.config['SQLALCHEMY_DATABASE_URI'] = get_robust_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
