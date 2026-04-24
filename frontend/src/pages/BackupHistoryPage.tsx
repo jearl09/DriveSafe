@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import "../App.css";
 
@@ -8,10 +8,11 @@ interface LedgerRecord {
     project_title: string;
     academic_year: string;
     status: string;
+    version: number;
     srs_path: string;
-    sds_path: string;
+    sdd_path: string;
     srs_hash: string;
-    sds_hash: string;
+    sdd_hash: string;
     error: string;
     archived_at: string;
 }
@@ -59,17 +60,28 @@ const BackupHistoryPage = () => {
                                 <th style={{ padding: '15px', color: '#475569' }}>Local Paths</th>
                                 <th style={{ padding: '15px', color: '#475569' }}>SHA-256 Hashes</th>
                                 <th style={{ padding: '15px', color: '#475569' }}>Archived At</th>
+                                <th style={{ padding: '15px', color: '#475569' }}>Download</th>
                             </tr>
                         </thead>
                         <tbody>
                             {loading ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>Loading master ledger...</td></tr>
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>Loading master ledger...</td></tr>
                             ) : records.length === 0 ? (
-                                <tr><td colSpan={6} style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>No archival records found.</td></tr>
+                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: '50px', color: '#64748b' }}>No archival records found.</td></tr>
                             ) : records.map((r) => (
                                 <tr key={r.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                     <td style={{ padding: '15px' }}>
-                                        <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{r.project_title}</div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                            <div style={{ fontWeight: 'bold', color: '#1e293b' }}>{r.project_title}</div>
+                                            {r.version > 1 && (
+                                                <span style={{ 
+                                                    fontSize: '0.65rem', backgroundColor: '#e0f2fe', color: '#0369a1', 
+                                                    padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' 
+                                                }}>
+                                                    V{r.version}
+                                                </span>
+                                            )}
+                                        </div>
                                         <div style={{ fontSize: '0.8rem', color: '#64748b' }}>ID: {r.project_id}</div>
                                     </td>
                                     <td style={{ padding: '15px', color: '#475569' }}>{r.academic_year}</td>
@@ -92,6 +104,22 @@ const BackupHistoryPage = () => {
                                         <div><strong>SDD:</strong> {r.sdd_hash ? r.sdd_hash.substring(0, 16) + '...' : 'N/A'}</div>
                                     </td>
                                     <td style={{ padding: '15px', color: '#64748b', fontSize: '0.85rem' }}>{r.archived_at || 'N/A'}</td>
+                                    <td style={{ padding: '15px' }}>
+                                        <div style={{ display: 'flex', gap: '5px' }}>
+                                            <button 
+                                                onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/srs`, '_blank')}
+                                                style={{ padding: '5px 8px', fontSize: '0.7rem', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                SRS
+                                            </button>
+                                            <button 
+                                                onClick={() => window.open(`http://localhost:5000/api/registry/download/${r.id}/sdd`, '_blank')}
+                                                style={{ padding: '5px 8px', fontSize: '0.7rem', backgroundColor: '#e2e8f0', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+                                            >
+                                                SDD
+                                            </button>
+                                        </div>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>

@@ -1,8 +1,6 @@
 // HomePage.tsx
 // Main landing page for DriveSafe
 
-import React from "react";
-
 const HomePage = () => {
   
   // 1. Function to handle navigation to Sign In

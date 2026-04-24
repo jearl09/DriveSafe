@@ -20,15 +20,29 @@ COL_SDD_PATH = 7
 COL_ERROR = 8
 
 class RegistrySheetsService:
-    def __init__(self, service_account_json_path, sheet_id):
+    def __init__(self, service_account_json_path=None, sheet_id=None, user_credentials=None):
         self.scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-        self.creds = ServiceAccountCredentials.from_json_keyfile_name(service_account_json_path, self.scope)
-        self.client = gspread.authorize(self.creds)
-        self.sheet_id = sheet_id
-        self.workbook = self.client.open_by_key(sheet_id)
+        
+        if user_credentials:
+            # Authenticate using user OAuth token
+            self.client = gspread.authorize(user_credentials)
+        elif service_account_json_path:
+            # Fallback to Service Account
+            self.creds = ServiceAccountCredentials.from_json_keyfile_name(service_account_json_path, self.scope)
+            self.client = gspread.authorize(self.creds)
+        else:
+            raise ValueError("No authentication method provided (Service Account or User Credentials)")
 
-    def get_pending_projects(self, sheet_name):
-        """Fetch all rows with Archival Status = 'Pending'"""
+        self.sheet_id = sheet_id
+        self.workbook = None
+        if sheet_id:
+            try:
+                self.workbook = self.client.open_by_key(sheet_id)
+            except Exception as e:
+                logger.error(f"Failed to open sheet {sheet_id}: {e}")
+
+    def get_all_projects(self, sheet_name):
+        """Fetch all rows from the sheet regardless of status"""
         try:
             worksheet = self.workbook.worksheet(sheet_name)
             all_records = worksheet.get_all_values()
@@ -36,27 +50,23 @@ class RegistrySheetsService:
             if not all_records:
                 return []
 
-            pending_projects = []
+            projects = []
             for idx, row in enumerate(all_records[1:], start=2):
-                # Ensure row has enough columns for status check
+                # Ensure row has enough columns
                 if len(row) > COL_STATUS:
-                    status = row[COL_STATUS].strip().lower()
-                    if status == 'pending':
-                        project = {
-                            'row_index': idx,
-                            'project_id': row[COL_PROJECT_ID] if len(row) > COL_PROJECT_ID else '',
-                            'project_title': row[COL_PROJECT_TITLE] if len(row) > COL_PROJECT_TITLE else 'Untitled',
-                            'srs_link': row[COL_SRS_LINK] if len(row) > COL_SRS_LINK else '',
-                            'sdd_link': row[COL_SDD_LINK] if len(row) > COL_SDD_LINK else '',
-                            'status': row[COL_STATUS],
-                            'academic_year': sheet_name
-                        }
-                        pending_projects.append(project)
-            return pending_projects
+                    project = {
+                        'row_index': idx,
+                        'project_id': row[COL_PROJECT_ID] if len(row) > COL_PROJECT_ID else '',
+                        'project_title': row[COL_PROJECT_TITLE] if len(row) > COL_PROJECT_TITLE else 'Untitled',
+                        'srs_link': row[COL_SRS_LINK] if len(row) > COL_SRS_LINK else '',
+                        'sdd_link': row[COL_SDD_LINK] if len(row) > COL_SDD_LINK else '',
+                        'status': row[COL_STATUS],
+                        'academic_year': sheet_name
+                    }
+                    projects.append(project)
+            return projects
         except Exception as e:
             print(f"Error fetching projects from {sheet_name}: {e}")
-            import traceback
-            traceback.print_exc()
             raise e
 
     def update_status(self, sheet_name, row_index, status, srs_path='', sdd_path='', error_msg=''):
@@ -81,3 +91,11 @@ class RegistrySheetsService:
     def get_all_sheet_names(self):
         """List all worksheet names in the workbook (e.g., '2024-2025', '2025-2026')"""
         return [ws.title for ws in self.workbook.worksheets()]
+
+    def list_available_sheets(self):
+        """List all Google Sheets files the service account can access"""
+        # We use the underlying gspread client's auth session to call Drive API
+        # Or just use gspread's openall() which might be slow if there are many files.
+        # list_spreadsheet_files() is better.
+        files = self.client.list_spreadsheet_files()
+        return [{"id": f["id"], "name": f["name"]} for f in files]

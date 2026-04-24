@@ -1,7 +1,6 @@
 // AboutPage.tsx
 // About page for DriveSafe
 
-import React from "react";
 import "../App.css";
 
 const AboutPage = () => {

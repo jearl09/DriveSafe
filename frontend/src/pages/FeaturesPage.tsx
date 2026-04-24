@@ -1,7 +1,7 @@
 // FeaturesPage.tsx
 // Features page for DriveSafe
 
-import React, { useState } from "react";
+import { useState } from "react";
 import "./FeaturesPage.css";
 
 // Data structure for features to make mapping easier

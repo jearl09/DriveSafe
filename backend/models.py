@@ -25,7 +25,10 @@ class ArchivalLedger(db.Model):
     sdd_local_path = db.Column(db.String(500), nullable=True) # Renamed
     srs_hash = db.Column(db.String(64), nullable=True)
     sdd_hash = db.Column(db.String(64), nullable=True) # Renamed
+    srs_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True) # Store actual PDF
+    sdd_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True) # Store actual PDF
     status = db.Column(db.String(50), default='pending')
+    version = db.Column(db.Integer, default=1)
     error_message = db.Column(db.Text, nullable=True)
     archived_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)

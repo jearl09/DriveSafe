@@ -7,8 +7,7 @@ import {
   AlertCircle, 
   ExternalLink, 
   Download, 
-  Search,
-  Check
+  Search
 } from 'lucide-react';
 
 interface Project {
@@ -16,12 +15,20 @@ interface Project {
     project_id: string;
     project_title: string;
     srs_link: string;
-    sds_link: string;
+    sdd_link: string;
     status: string;
     academic_year: string;
+    latest_version?: number;
+}
+
+interface Workbook {
+    id: string;
+    name: string;
 }
 
 const RegistryDashboard: React.FC = () => {
+    const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
+    const [selectedWorkbookId, setSelectedWorkbookId] = useState<string>('');
     const [years, setYears] = useState<string[]>([]);
     const [selectedYear, setSelectedYear] = useState<string>('');
     const [projects, setProjects] = useState<Project[]>([]);
@@ -32,29 +39,54 @@ const RegistryDashboard: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
     useEffect(() => {
-        fetchYears();
+        fetchWorkbooks();
     }, []);
 
     useEffect(() => {
-        if (selectedYear) {
-            fetchProjects(selectedYear);
+        if (selectedWorkbookId) {
+            fetchYears(selectedWorkbookId);
+        } else {
+            setYears([]);
+            setSelectedYear('');
+            setProjects([]);
+        }
+    }, [selectedWorkbookId]);
+
+    useEffect(() => {
+        if (selectedYear && selectedWorkbookId) {
+            fetchProjects(selectedYear, selectedWorkbookId);
         }
     }, [selectedYear]);
 
-    const fetchYears = async () => {
+    const fetchWorkbooks = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/registry/years`, { withCredentials: true });
-            setYears(res.data);
-            if (res.data.length > 0) setSelectedYear(res.data[0]);
+            const res = await axios.get(`http://localhost:5000/api/registry/list-sheets`, { withCredentials: true });
+            setWorkbooks(res.data);
+            if (res.data.length > 0) {
+                setSelectedWorkbookId(res.data[0].id);
+            }
         } catch (err) {
-            setMessage({ text: "Authentication required or server error.", type: 'error' });
+            setMessage({ text: "Failed to load Google Sheets from Drive.", type: 'error' });
         }
     };
 
-    const fetchProjects = async (year: string) => {
+    const fetchYears = async (workbookId: string) => {
+        try {
+            const res = await axios.get(`http://localhost:5000/api/registry/years?sheet_id=${workbookId}`, { withCredentials: true });
+            setYears(res.data);
+            if (res.data.length > 0) setSelectedYear(res.data[0]);
+            else setSelectedYear('');
+        } catch (err) {
+            setMessage({ text: "Failed to load years from the selected sheet.", type: 'error' });
+            setYears([]);
+            setSelectedYear('');
+        }
+    };
+
+    const fetchProjects = async (year: string, workbookId: string) => {
         setLoading(true);
         try {
-            const res = await axios.get(`http://localhost:5000/api/registry/projects?year=${year}`, { withCredentials: true });
+            const res = await axios.get(`http://localhost:5000/api/registry/projects?year=${year}&sheet_id=${workbookId}`, { withCredentials: true });
             setProjects(res.data);
             setSelectedRows([]);
             setValidationResults({});
@@ -74,11 +106,14 @@ const RegistryDashboard: React.FC = () => {
     };
 
     const validateLinks = async () => {
-        const linksToValidate = projects.flatMap(p => [p.srs_link, p.sds_link]).filter(l => l);
+        const linksToValidate = projects.flatMap(p => [p.srs_link, p.sdd_link]).filter(l => l);
         if (linksToValidate.length === 0) return;
         setLoading(true);
         try {
-            const res = await axios.post(`http://localhost:5000/api/registry/validate`, { links: linksToValidate }, { withCredentials: true });
+            const res = await axios.post(`http://localhost:5000/api/registry/validate`, { 
+                links: linksToValidate,
+                sheet_id: selectedWorkbookId 
+            }, { withCredentials: true });
             setValidationResults(res.data);
         } catch (err) {
             setMessage({ text: "Validation failed.", type: 'error' });
@@ -92,9 +127,12 @@ const RegistryDashboard: React.FC = () => {
         if (selectedProjects.length === 0) return;
         setIsProcessing(true);
         try {
-            await axios.post(`http://localhost:5000/api/registry/archive`, { projects: selectedProjects }, { withCredentials: true });
+            await axios.post(`http://localhost:5000/api/registry/archive`, { 
+                projects: selectedProjects,
+                sheet_id: selectedWorkbookId
+            }, { withCredentials: true });
             setMessage({ text: "Archival sequence initiated. Tracking progress in Sheets.", type: 'success' });
-            setTimeout(() => fetchProjects(selectedYear), 3000);
+            setTimeout(() => fetchProjects(selectedYear, selectedWorkbookId), 3000);
         } catch (err) {
             setMessage({ text: "Archival request failed.", type: 'error' });
         } finally {
@@ -102,14 +140,24 @@ const RegistryDashboard: React.FC = () => {
         }
     };
 
-    const getStatusBadge = (status: string) => {
+    const getStatusBadge = (project: Project) => {
         const base = "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider";
-        const s = status.toLowerCase();
-        if (s === 'pending') return <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>;
-        if (s === 'archived') return <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>;
-        if (s === 'duplicate') return <span className={`${base} bg-amber-50 text-amber-600`}>Duplicate</span>;
-        if (s === 'failed') return <span className={`${base} bg-red-50 text-red-600`}>Action Required</span>;
-        return <span className={`${base} bg-slate-100 text-slate-500`}>{status}</span>;
+        const status = project.status.toLowerCase();
+        
+        if (status === 'pending') return <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>;
+        if (status === 'archived') return (
+            <div className="flex items-center gap-2">
+                <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>
+                {project.latest_version && project.latest_version > 1 && (
+                    <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
+                        V{project.latest_version}
+                    </span>
+                )}
+            </div>
+        );
+        if (status === 'duplicate') return <span className={`${base} bg-amber-50 text-amber-600`}>Duplicate</span>;
+        if (status === 'failed') return <span className={`${base} bg-red-50 text-red-600`}>Action Required</span>;
+        return <span className={`${base} bg-slate-100 text-slate-500`}>{project.status}</span>;
     };
 
     return (
@@ -129,6 +177,15 @@ const RegistryDashboard: React.FC = () => {
                     </div>
 
                     <div className="flex items-center gap-3">
+                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Workbook:</label>
+                        <select 
+                            value={selectedWorkbookId} 
+                            onChange={(e) => setSelectedWorkbookId(e.target.value)}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 outline-none font-semibold"
+                        >
+                            {workbooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                        </select>
+                        <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
                         <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Sheet:</label>
                         <select 
                             value={selectedYear} 
@@ -179,7 +236,7 @@ const RegistryDashboard: React.FC = () => {
                     </div>
                     
                     <button 
-                        onClick={() => fetchProjects(selectedYear)}
+                        onClick={() => fetchProjects(selectedYear, selectedWorkbookId)}
                         className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                         title="Refresh List"
                     >
@@ -225,7 +282,7 @@ const RegistryDashboard: React.FC = () => {
                                         <td colSpan={6} className="px-6 py-20 text-center">
                                             <div className="flex flex-col items-center gap-3">
                                                 <Search className="w-8 h-8 text-slate-200" />
-                                                <p className="text-slate-400 text-sm font-medium">No pending projects for this cycle.</p>
+                                                <p className="text-slate-400 text-sm font-medium">No projects found in this sheet.</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -262,21 +319,21 @@ const RegistryDashboard: React.FC = () => {
                                             ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {p.sds_link || p.sdd_link ? (
+                                            {p.sdd_link ? (
                                                 <div className="flex flex-col gap-1">
-                                                    <a href={p.sds_link || p.sdd_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                                                    <a href={p.sdd_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
                                                         <ExternalLink className="w-3 h-3" /> View Source
                                                     </a>
-                                                    {validationResults[p.sds_link || p.sdd_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.sds_link || p.sdd_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.sds_link || p.sdd_link]}
+                                                    {validationResults[p.sdd_link] && (
+                                                        <span className={`text-[10px] font-medium ${validationResults[p.sdd_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                            {validationResults[p.sdd_link]}
                                                         </span>
                                                     )}
                                                 </div>
                                             ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {getStatusBadge(p.status)}
+                                            {getStatusBadge(p)}
                                         </td>
                                     </tr>
                                 ))}

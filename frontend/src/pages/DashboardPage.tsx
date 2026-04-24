@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import { 
   LayoutDashboard, 
@@ -8,8 +8,6 @@ import {
   ShieldCheck, 
   Zap, 
   Database, 
-  User, 
-  ExternalLink,
   RefreshCw,
   Activity,
   FileCheck,

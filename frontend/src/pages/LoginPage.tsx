@@ -1,7 +1,6 @@
 // LoginPage.tsx
 // Login page for DriveSafe
 
-import React from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import "../App.css";
 
@@ -9,7 +8,7 @@ const LoginPage = () => {
   
   const googleLogin = useGoogleLogin({
     flow: 'auth-code',
-    scope: "openid email profile",
+    scope: "openid email profile https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/spreadsheets https://spreadsheets.google.com/feeds",
     // @ts-ignore
     prompt: 'consent', 
     onSuccess: async (codeResponse) => {

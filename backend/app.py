@@ -50,10 +50,17 @@ def google_auth():
         if not os.path.exists(secret_path):
             return jsonify({"error": "client_secret.json not found on backend."}), 400
 
-        # We request minimal scopes. OAUTHLIB_RELAX_TOKEN_SCOPE handles any extras Google sends back.
+        # We request scopes for Drive and Spreadsheets to allow the app to act as the user
         flow = Flow.from_client_secrets_file(
             secret_path, 
-            scopes=["openid", "email", "profile"], 
+            scopes=[
+                "openid", 
+                "email", 
+                "profile", 
+                "https://www.googleapis.com/auth/drive",
+                "https://www.googleapis.com/auth/spreadsheets",
+                "https://spreadsheets.google.com/feeds"
+            ], 
             redirect_uri='postmessage'
         )
         flow.fetch_token(code=code)
