@@ -59,6 +59,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = get_robust_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+login_manager = LoginManager(app)
 CORS(app, supports_credentials=True)
 
 @login_manager.user_loader
