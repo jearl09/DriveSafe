@@ -24,14 +24,17 @@ app = Flask(__name__,
 import logging
 logger = logging.getLogger('waitress')
 
-raw_db_url = os.getenv('DATABASE_URL')
-if not raw_db_url:
-    logger.error("❌ CRITICAL ERROR: DATABASE_URL environment variable is missing!")
-    raise RuntimeError("DATABASE_URL is missing!")
+# Get URL and strip any hidden whitespace
+raw_db_url = os.getenv('DATABASE_URL', '').strip()
+
+if not raw_db_url or "localhost" in raw_db_url:
+    logger.error("❌ CRITICAL ERROR: DATABASE_URL is either missing or incorrectly set to 'localhost'!")
+    logger.error("Please check your Railway Variables and ensure it points to ${{MariaDB.MYSQL_URL}}")
+    raise RuntimeError("Invalid DATABASE_URL in production environment.")
 
 # Mask password for logging
 masked_url = raw_db_url.split('@')[-1] if '@' in raw_db_url else raw_db_url
-logger.info(f"✅ DATABASE_URL detected. Target: {masked_url}")
+logger.info(f"✅ DATABASE_URL VALIDATED. Connection Target: {masked_url}")
 
 # Fix for Render/Postgres URL compatibility
 if raw_db_url.startswith("postgres://"):
