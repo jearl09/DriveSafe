@@ -21,20 +21,15 @@ app = Flask(__name__,
             static_url_path='/')
 
 # --- DATABASE CONFIG ---
-import logging
-logger = logging.getLogger('waitress')
-
-# Get URL and strip any hidden whitespace
 raw_db_url = os.getenv('DATABASE_URL', '').strip()
 
-if not raw_db_url or "localhost" in raw_db_url:
-    logger.error("❌ CRITICAL ERROR: DATABASE_URL is either missing or incorrectly set to 'localhost'!")
-    logger.error("Please check your Railway Variables and ensure it points to ${{MariaDB.MYSQL_URL}}")
-    raise RuntimeError("Invalid DATABASE_URL in production environment.")
+print(f">>> [BOOT] DATABASE_URL raw value: {raw_db_url[:15]}...", flush=True)
 
-# Mask password for logging
-masked_url = raw_db_url.split('@')[-1] if '@' in raw_db_url else raw_db_url
-logger.info(f"✅ DATABASE_URL VALIDATED. Connection Target: {masked_url}")
+if not raw_db_url or "localhost" in raw_db_url:
+    print(">>> [BOOT] ❌ ERROR: DATABASE_URL is missing or set to localhost!", flush=True)
+    # If we are in the cloud (PORT exists), we MUST NOT proceed with localhost
+    if os.getenv('PORT'):
+        raise RuntimeError("CRITICAL: Refusing to start with localhost database in production!")
 
 # Fix for Render/Postgres URL compatibility
 if raw_db_url.startswith("postgres://"):
@@ -43,9 +38,8 @@ if raw_db_url.startswith("postgres://"):
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
-app.config['SESSION_COOKIE_SECURE'] = False
-app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+print(f">>> [BOOT] SQLAlchemy URI set to: {app.config['SQLALCHEMY_DATABASE_URI'].split('@')[-1]}", flush=True)
 
 db.init_app(app)
 login_manager = LoginManager(app)
