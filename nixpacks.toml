@@ -1,0 +1,8 @@
+[phases.setup]
+nixPkgs = ["...", "nodejs", "python310"]
+
+[phases.build]
+cmds = ["cd frontend && npm install && npm run build", "cd backend && pip install -r requirements.txt"]
+
+[start]
+cmd = "cd backend && waitress-serve --port=$PORT app:app"
