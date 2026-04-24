@@ -1,9 +1,13 @@
-# DRIVE-SAFE-GOAT-BUILD-V7
-[phases.setup]
-nixPkgs = ["nodejs-22_x", "python310", "gcc"]
+# DRIVE-SAFE-GOAT-BUILD-FINAL
+[phases.install]
+cmds = [
+  "npm install --prefix frontend",
+  "python3 -m venv /opt/venv",
+  "/opt/venv/bin/pip install -r backend/requirements.txt"
+]
 
 [phases.build]
-cmds = ["bash build.sh"]
+cmds = ["npm run build --prefix frontend"]
 
 [start]
 cmd = "/opt/venv/bin/python3 backend/serve_prod.py"
