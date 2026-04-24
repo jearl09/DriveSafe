@@ -35,6 +35,11 @@ if not raw_db_url or "localhost" in raw_db_url:
 if raw_db_url.startswith("postgres://"):
     raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 
+# Fix for Railway/MySQL URL compatibility - FORCE pymysql driver
+if raw_db_url.startswith("mysql://"):
+    raw_db_url = raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
+
+print(f">>> [BOOT] SQLAlchemy Protocol: {raw_db_url.split(':')[0]}", flush=True)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
