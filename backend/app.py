@@ -21,13 +21,17 @@ app = Flask(__name__,
             static_url_path='/')
 
 # --- DATABASE CONFIG ---
+import logging
+logger = logging.getLogger('waitress')
+
 raw_db_url = os.getenv('DATABASE_URL')
 if not raw_db_url:
-    raise RuntimeError("❌ CRITICAL ERROR: DATABASE_URL environment variable is missing!")
+    logger.error("❌ CRITICAL ERROR: DATABASE_URL environment variable is missing!")
+    raise RuntimeError("DATABASE_URL is missing!")
 
 # Mask password for logging
 masked_url = raw_db_url.split('@')[-1] if '@' in raw_db_url else raw_db_url
-print(f"✅ DATABASE_URL detected. Target: {masked_url}")
+logger.info(f"✅ DATABASE_URL detected. Target: {masked_url}")
 
 # Fix for Render/Postgres URL compatibility
 if raw_db_url.startswith("postgres://"):
