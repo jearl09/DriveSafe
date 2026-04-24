@@ -18,19 +18,18 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy backend requirements and install
-COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy everything
+# Copy everything from the root
 COPY . .
 
-# Copy built frontend from Stage 1
+# Copy built frontend from Stage 1 into the root's frontend/dist
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 # Set environment variables
 ENV PORT=8080
 EXPOSE 8080
 
-# Start from the backend directory
-WORKDIR /app/backend
-CMD ["python", "serve_prod.py"]
+# Start the app from the root, pointing to the backend folder
+CMD ["python", "backend/serve_prod.py"]
