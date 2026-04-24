@@ -1,3 +1,6 @@
+[phases.setup]
+nixPkgs = ["nodejs-20_x", "python310", "gcc"]
+
 [phases.install]
 cmds = [
   "npm install --prefix frontend",
