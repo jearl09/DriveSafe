@@ -23,10 +23,9 @@ app = Flask(__name__,
 # --- DATABASE CONFIG ---
 raw_db_url = os.getenv('DATABASE_URL')
 if not raw_db_url:
-    print("⚠️ WARNING: DATABASE_URL not found in environment. Falling back to localhost MariaDB.")
-    raw_db_url = 'mysql+pymysql://root:123Earl.@localhost/drivesafe_prod'
-else:
-    print(f"✅ DATABASE_URL found. Protocol: {raw_db_url.split(':')[0]}")
+    raise RuntimeError("❌ CRITICAL ERROR: DATABASE_URL environment variable is missing! Please set it in Railway.")
+
+print(f"✅ DATABASE_URL detected. Starting initialization...")
 
 # Fix for Render/Postgres URL compatibility
 if raw_db_url.startswith("postgres://"):
