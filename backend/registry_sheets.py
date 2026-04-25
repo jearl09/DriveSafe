@@ -78,7 +78,7 @@ class RegistrySheetsService:
             print(f"Error fetching projects from {sheet_name}: {e}")
             raise e
 
-    def update_status(self, sheet_name, row_index, status, srs_path='', sdd_path='', spmp_path='', std_path='', ri_path='', error_msg=''):
+    def update_status(self, sheet_name, row_index, status, srs_path=None, sdd_path=None, spmp_path=None, std_path=None, ri_path=None, error_msg=None):
         """Update the row with the current status and archival details"""
         worksheet = self.workbook.worksheet(sheet_name)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -86,16 +86,19 @@ class RegistrySheetsService:
         # Batch update for efficiency
         # Status (H), Last Updated (I), SRS Path (J), SDD Path (K), SPMP (L), STD (M), RI (N), Error (O)
         # H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15
+        
         updates = [
             {'range': f'H{row_index}', 'values': [[status]]},
-            {'range': f'I{row_index}', 'values': [[timestamp]]},
-            {'range': f'J{row_index}', 'values': [[srs_path]]},
-            {'range': f'K{row_index}', 'values': [[sdd_path]]},
-            {'range': f'L{row_index}', 'values': [[spmp_path]]},
-            {'range': f'M{row_index}', 'values': [[std_path]]},
-            {'range': f'N{row_index}', 'values': [[ri_path]]},
-            {'range': f'O{row_index}', 'values': [[error_msg]]}
+            {'range': f'I{row_index}', 'values': [[timestamp]]}
         ]
+        
+        # Only update paths and error messages if they are not None (to avoid clearing existing ones during 'Unchanged')
+        if srs_path is not None: updates.append({'range': f'J{row_index}', 'values': [[srs_path]]})
+        if sdd_path is not None: updates.append({'range': f'K{row_index}', 'values': [[sdd_path]]})
+        if spmp_path is not None: updates.append({'range': f'L{row_index}', 'values': [[spmp_path]]})
+        if std_path is not None: updates.append({'range': f'M{row_index}', 'values': [[std_path]]})
+        if ri_path is not None: updates.append({'range': f'N{row_index}', 'values': [[ri_path]]})
+        if error_msg is not None: updates.append({'range': f'O{row_index}', 'values': [[error_msg]]})
         
         worksheet.batch_update(updates)
         logger.info(f"Updated row {row_index} in {sheet_name} with status: {status}")

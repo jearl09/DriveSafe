@@ -51,46 +51,58 @@ class ArchivalEngine:
         try:
             text = ""
             with pdfplumber.open(file_path) as pdf:
-                for page in pdf.pages[:10]:
+                # Increased limit to 100 pages to catch changes in large documents
+                for page in pdf.pages[:100]:
                     text += (page.extract_text() or "")
             return text
         except Exception as e:
             logger.error(f"Text extraction failed: {e}")
             return ""
 
-    def check_for_duplicates(self, new_file_hash, new_text):
+    def check_for_duplicates(self, new_file_hash, new_text, current_project_id=None):
         """
-        Deduplication Engine: Returns (type, score, original_title, original_project_id)
+        Deduplication Engine: Returns (type, score, original_title, original_project_id, version)
         """
         # 1. Exact Hash Check
         exact_match = ArchivalLedger.query.filter(
             (ArchivalLedger.srs_hash == new_file_hash) | 
-            (ArchivalLedger.sdd_hash == new_file_hash)
+            (ArchivalLedger.sdd_hash == new_file_hash) |
+            (ArchivalLedger.spmp_hash == new_file_hash) |
+            (ArchivalLedger.std_hash == new_file_hash) |
+            (ArchivalLedger.ri_hash == new_file_hash)
         ).first()
         
         if exact_match:
-            return "Exact Duplicate", 1.0, exact_match.project_title, exact_match.project_id
+            return "Exact Duplicate", 1.0, exact_match.project_title, exact_match.project_id, exact_match.version
 
         # 2. AI Semantic Similarity
-        if not new_text or len(new_text) < 200: 
-            return None, 0, None, None
+        if not new_text or len(new_text) < 100: 
+            return None, 0, None, None, None
 
-        past_records = ArchivalLedger.query.filter(ArchivalLedger.status == 'archived').all()
+        query = ArchivalLedger.query.filter(ArchivalLedger.status == 'archived')
+        if current_project_id:
+            past_records = query.filter(ArchivalLedger.project_id == current_project_id).all()
+        else:
+            past_records = query.all()
+
         for record in past_records:
-            # Check SRS of past projects
-            path = record.srs_local_path or record.sdd_local_path
-            if path and os.path.exists(path):
-                past_text = self._extract_text_from_pdf(path)
-                if len(past_text) > 200:
-                    try:
-                        vectorizer = TfidfVectorizer().fit_transform([new_text, past_text])
-                        vectors = vectorizer.toarray()
-                        similarity = cosine_similarity(vectors)[0][1]
-                        # 90% threshold for blocking
-                        if similarity > 0.90:
-                            return "Semantic Duplicate", similarity, record.project_title, record.project_id
-                    except: continue
-        return None, 0, None, None
+            paths = [record.srs_local_path, record.sdd_local_path, record.spmp_local_path, record.std_local_path, record.ri_local_path]
+            for path in paths:
+                if path:
+                    full_path = os.path.join(self.archive_root, path)
+                    if os.path.exists(full_path):
+                        past_text = self._extract_text_from_pdf(full_path)
+                        if len(past_text) > 100:
+                            try:
+                                vectorizer = TfidfVectorizer().fit_transform([new_text, past_text])
+                                vectors = vectorizer.toarray()
+                                similarity = cosine_similarity(vectors)[0][1]
+                                logger.info(f"AI Similarity Check: {similarity:.4f} against {path}")
+                                # 90% threshold for "Near Duplicate"
+                                if similarity > 0.90:
+                                    return "Semantic Duplicate", similarity, record.project_title, record.project_id, record.version
+                            except: continue
+        return None, 0, None, None, None
 
     def download_file(self, file_id, destination_path):
         try:
@@ -100,37 +112,66 @@ class ArchivalEngine:
             logger.info(f"Attempting to download: {file_name} (Type: {mime_type})")
 
             fh = io.BytesIO()
-            final_ext = ".pdf" # Default
+            final_ext = ".pdf" # We want everything as PDF for viewing
             
+            # Case 1: Native Google Docs/Sheets
             if 'google-apps.document' in mime_type:
-                # Native Google Doc -> Export to PDF
                 request = self.service.files().export_media(fileId=file_id, mimeType='application/pdf')
             elif 'google-apps.spreadsheet' in mime_type:
-                # Native Google Sheet -> Export to PDF (Perfect for RI)
                 request = self.service.files().export_media(fileId=file_id, mimeType='application/pdf')
-            elif 'officedocument.spreadsheetml.sheet' in mime_type or 'ms-excel' in mime_type:
-                # Raw Excel File -> Download as is
+            
+            # Case 2: MS Office Files (.docx, .xlsx)
+            elif 'officedocument.wordprocessingml.document' in mime_type or 'officedocument.spreadsheetml.sheet' in mime_type:
+                logger.info(f"Converting Office file {file_name} to PDF via temporary Google Doc upload...")
+                # To convert to PDF, we "import" it as a Google Doc/Sheet first
+                temp_metadata = {
+                    'name': f"TEMP_CONV_{file_name}",
+                    'mimeType': 'application/vnd.google-apps.document' if 'document' in mime_type else 'application/vnd.google-apps.spreadsheet'
+                }
+                # Use the original file as media for the new temp file
+                media_content = self.service.files().get_media(fileId=file_id).execute()
+                from googleapiclient.http import MediaIoBaseUpload
+                temp_file = self.service.files().create(
+                    body=temp_metadata,
+                    media_body=MediaIoBaseUpload(io.BytesIO(media_content), mimetype=mime_type),
+                    fields='id'
+                ).execute()
+                temp_id = temp_file.get('id')
+                
+                # Now export the temp Google Doc as PDF
+                request = self.service.files().export_media(fileId=temp_id, mimeType='application/pdf')
+                
+                # Execute the export
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
+                
+                # Cleanup the temporary file
+                self.service.files().delete(fileId=temp_id).execute()
+            
+            # Case 3: Already a PDF
+            elif 'pdf' in mime_type:
                 request = self.service.files().get_media(fileId=file_id)
-                final_ext = ".xlsx"
-            elif 'officedocument.wordprocessingml.document' in mime_type:
-                # Raw Word File -> Download as is
-                request = self.service.files().get_media(fileId=file_id)
-                final_ext = ".docx"
+            
+            # Case 4: Other files (try direct download)
             else:
+                logger.warning(f"Unknown mime-type {mime_type}, downloading as-is but still aiming for .pdf destination.")
                 request = self.service.files().get_media(fileId=file_id)
-                if 'pdf' in mime_type: final_ext = ".pdf"
-                else: final_ext = ".bin"
+                final_ext = os.path.splitext(file_name)[1] or ".bin"
 
-            downloader = MediaIoBaseDownload(fh, request)
-            done = False
-            while not done:
-                status, done = downloader.next_chunk()
+            # If request hasn't been executed yet (Cases 1, 3, 4)
+            if fh.tell() == 0:
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
             
             content = fh.getvalue()
             if len(content) == 0:
                 raise Exception("Downloaded file is empty.")
 
-            # Update the destination path if the extension changed
+            # Ensure destination ends with the correct extension
             if not destination_path.endswith(final_ext):
                 base = os.path.splitext(destination_path)[0]
                 destination_path = base + final_ext
@@ -138,94 +179,140 @@ class ArchivalEngine:
             with open(destination_path, 'wb') as f:
                 f.write(content)
                 
-            logger.info(f"Downloaded {file_name} as {final_ext}, size: {len(content)} bytes")
-            return destination_path # Return the actual path used
+            logger.info(f"Successfully processed {file_name} as {final_ext}")
+            return destination_path
         except Exception as e:
-            logger.error(f"Download Error for {file_id}: {e}")
+            logger.error(f"Download/Conversion Error for {file_id}: {e}")
             raise e
 
     def archive_project(self, project_data, workbook_name="Archives"):
+        project_id = project_data.get('project_id')
         project_title = project_data.get('project_title', 'Untitled').replace(' ', '_').replace('/', '_')
+        academic_year = project_data.get('academic_year')
+        
         base_project_dir = os.path.join(self.archive_root, workbook_name, project_title)
         os.makedirs(base_project_dir, exist_ok=True)
         
+        # 1. Fetch the LATEST record for this project to compare against
         last_record = ArchivalLedger.query.filter_by(
-            project_id=project_data.get('project_id'),
-            academic_year=project_data.get('academic_year'),
+            project_id=project_id,
+            academic_year=academic_year,
             status='archived'
         ).order_by(ArchivalLedger.version.desc()).first()
         
-        current_version = (last_record.version if last_record else 0) + 1
-        
         doc_types = ['srs', 'sdd', 'spmp', 'std', 'ri']
-        results = {dt: {'path': None, 'hash': None, 'dup': None, 'bin': None} for dt in doc_types}
+        results = {dt: {'path': None, 'hash': None, 'is_changed': False, 'bin': None} for dt in doc_types}
         error_msg = ""
-        is_duplicate = False
+        total_changed = 0
 
+        # 2. Process each document
         for doc_type in doc_types:
             link = project_data.get(f'{doc_type}_link')
             file_id = self._extract_file_id(link)
             
             if file_id:
                 try:
+                    # Download and convert to PDF
                     doc_dir = os.path.join(base_project_dir, doc_type.upper())
                     os.makedirs(doc_dir, exist_ok=True)
-
-                    # Initial temp name (extension will be corrected by download_file)
-                    temp_path = os.path.join(doc_dir, f"TEMP_{doc_type.upper()}.pdf")
+                    
+                    temp_path = os.path.join(doc_dir, f"COMPARE_{doc_type.upper()}.pdf")
                     actual_temp_path = self.download_file(file_id, temp_path)
-                    ext = os.path.splitext(actual_temp_path)[1]
                     
                     with open(actual_temp_path, "rb") as f:
                         file_binary = f.read()
                         results[doc_type]['bin'] = file_binary
                     
                     file_hash = self._compute_hash(actual_temp_path)
-                    
-                    # Only do text extraction for PDFs (for AI similarity)
-                    file_text = ""
-                    if ext == ".pdf":
-                        file_text = self._extract_text_from_pdf(actual_temp_path)
-                    
-                    dup_type, score, orig_title, orig_project_id = self.check_for_duplicates(file_hash, file_text)
-                    
-                    if dup_type == "Exact Duplicate":
-                        if orig_project_id == project_data.get('project_id'):
-                            is_duplicate = True
-                            results[doc_type]['dup'] = f"Already archived"
-                            os.remove(actual_temp_path)
-                            continue
-                        else:
-                            is_duplicate = True
-                            results[doc_type]['dup'] = f"Duplicate of {orig_title}"
-                            os.remove(actual_temp_path)
-                            continue
-
-                    final_name = f"{project_title}_{doc_type.upper()}_v{current_version}{ext}"
-                    final_path = os.path.join(doc_dir, final_name)
-                    
-                    v_safe = current_version
-                    while os.path.exists(final_path):
-                        v_safe += 1
-                        final_path = os.path.join(doc_dir, f"{project_title}_{doc_type.upper()}_v{v_safe}{ext}")
-
-                    os.rename(actual_temp_path, final_path)
-                    rel_path = os.path.relpath(final_path, self.archive_root)
-                    results[doc_type]['path'] = rel_path
                     results[doc_type]['hash'] = file_hash
                     
+                    # AI Text Extraction for semantic check
+                    file_text = self._extract_text_from_pdf(actual_temp_path)
+                    
+                    # 3. Check if this specific file changed compared to the last version of THIS project
+                    changed = True
+                    if last_record:
+                        last_hash = getattr(last_record, f"{doc_type}_hash")
+                        if last_hash == file_hash:
+                            logger.info(f"Hash Match: {doc_type.upper()} is identical to last version. Skipping.")
+                            changed = False
+                        else:
+                            # If hash differs, check AI similarity to see if it's just metadata/conversion change
+                            last_path = getattr(last_record, f"{doc_type}_local_path")
+                            if last_path:
+                                full_last_path = os.path.join(self.archive_root, last_path)
+                                if os.path.exists(full_last_path):
+                                    past_text = self._extract_text_from_pdf(full_last_path)
+                                    if file_text and past_text:
+                                        try:
+                                            vectorizer = TfidfVectorizer().fit_transform([file_text, past_text])
+                                            vectors = vectorizer.toarray()
+                                            similarity = cosine_similarity(vectors)[0][1]
+                                            logger.info(f"AI Similarity for {doc_type.upper()}: {similarity:.4f}")
+                                            # If 99.9% similar, it's just metadata/conversion changes, not an edit.
+                                            if similarity > 0.99:
+                                                logger.info(f"AI: {doc_type.upper()} is 99%+ identical. Ignoring hash change.")
+                                                changed = False
+                                        except: pass
+
+                    # 4. Independent Plagiarism/Duplication Check (Across other projects)
+                    dup_type, score, orig_title, orig_project_id, _ = self.check_for_duplicates(file_hash, file_text, current_project_id=project_id)
+                    if dup_type and orig_project_id != project_id:
+                        logger.warning(f"PLAGIARISM DETECTED: {doc_type.upper()} is a {dup_type} of project '{orig_title}'")
+                        results[doc_type]['dup'] = f"Warning: Similar to {orig_title}"
+                    
+                    if changed:
+                        total_changed += 1
+                        results[doc_type]['is_changed'] = True
+                        
+                        # Use new version number for filename
+                        new_version = (last_record.version if last_record else 0) + 1
+                        ext = os.path.splitext(actual_temp_path)[1]
+                        final_name = f"{project_title}_{doc_type.upper()}_v{new_version}{ext}"
+                        final_path = os.path.join(doc_dir, final_name)
+                        
+                        # Safety check for file collision
+                        v_safe = new_version
+                        while os.path.exists(final_path):
+                            v_safe += 1
+                            final_path = os.path.join(doc_dir, f"{project_title}_{doc_type.upper()}_v{v_safe}{ext}")
+
+                        os.rename(actual_temp_path, final_path)
+                        results[doc_type]['path'] = os.path.relpath(final_path, self.archive_root)
+
+                        # BINARY STORAGE OPTIMIZATION: 
+                        # Only store in DB if file is < 16MB to avoid MySQL "Server Gone Away" errors.
+                        # Files are already saved on disk, so this is safe.
+                        if len(file_binary) > 16 * 1024 * 1024:
+                            logger.warning(f"File {doc_type.upper()} is too large ({len(file_binary)} bytes) for DB. Saving path only.")
+                            results[doc_type]['bin'] = None
+                        else:
+                            results[doc_type]['bin'] = file_binary
+                    else:
+                        # No change detected: use the path from the last record
+                        results[doc_type]['path'] = getattr(last_record, f"{doc_type}_local_path")
+                        os.remove(actual_temp_path) # Delete temp as we don't need a new file
+                        
                 except Exception as e:
                     error_msg += f"{doc_type.upper()} Error: {str(e)}; "
 
-        status = "archived"
-        if error_msg: status = "failed"
-        elif is_duplicate: status = "duplicate"
+        # 4. Final Decision: Save new version only if at least one file changed OR no previous record exists
+        if total_changed == 0 and last_record:
+            logger.info(f"No changes detected for project {project_title}. Skipping version increment.")
+            return {
+                'status': 'unchanged',
+                'message': 'No changes detected (all files are semantically identical to latest version).',
+                'version': last_record.version
+            }
+
+        current_version = (last_record.version if last_record else 0) + 1
+        status = "archived" if not error_msg else "failed"
 
         if status == "archived":
             ledger_entry = ArchivalLedger(
-                project_id=project_data.get('project_id'),
+                project_id=project_id,
                 project_title=project_data.get('project_title'),
-                academic_year=project_data.get('academic_year'),
+                academic_year=academic_year,
                 srs_original_url=project_data.get('srs_link'),
                 sdd_original_url=project_data.get('sdd_link'),
                 spmp_original_url=project_data.get('spmp_link'),
@@ -256,6 +343,7 @@ class ArchivalEngine:
         
         return {
             'status': status, 
+            'version': current_version,
             'paths': {dt: results[dt]['path'] for dt in doc_types},
             'error': error_msg.strip()
         }

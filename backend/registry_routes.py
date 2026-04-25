@@ -180,17 +180,22 @@ def archive_selected():
                     result = engine.archive_project(p, workbook_name=wb_name)
 
                     # Update Sheet with final results
+                    status = result['status'].capitalize()
+                    if result['status'] == 'unchanged':
+                        status = 'Archived' # Keep as Archived in sheet even if no new version was created
+                    
                     paths = result.get('paths', {})
+                    # We pass None for missing paths to keep the sheet's current values
                     sheets_service.update_status(
                         p['academic_year'], 
                         p['row_index'], 
-                        result['status'].capitalize(),
-                        srs_path=paths.get('srs', ''),
-                        sdd_path=paths.get('sdd', ''),
-                        spmp_path=paths.get('spmp', ''),
-                        std_path=paths.get('std', ''),
-                        ri_path=paths.get('ri', ''),
-                        error_msg=result['error']
+                        status,
+                        srs_path=paths.get('srs') if paths.get('srs') else None,
+                        sdd_path=paths.get('sdd') if paths.get('sdd') else None,
+                        spmp_path=paths.get('spmp') if paths.get('spmp') else None,
+                        std_path=paths.get('std') if paths.get('std') else None,
+                        ri_path=paths.get('ri') if paths.get('ri') else None,
+                        error_msg=result.get('error') if result.get('error') else None
                     )
 
                 except Exception as e:
