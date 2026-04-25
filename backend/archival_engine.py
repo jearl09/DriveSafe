@@ -86,22 +86,19 @@ class ArchivalEngine:
             past_records = query.all()
 
         for record in past_records:
-            paths = [record.srs_local_path, record.sdd_local_path, record.spmp_local_path, record.std_local_path, record.ri_local_path]
-            for path in paths:
-                if path:
-                    full_path = os.path.join(self.archive_root, path)
-                    if os.path.exists(full_path):
-                        past_text = self._extract_text_from_pdf(full_path)
-                        if len(past_text) > 100:
-                            try:
-                                vectorizer = TfidfVectorizer().fit_transform([new_text, past_text])
-                                vectors = vectorizer.toarray()
-                                similarity = cosine_similarity(vectors)[0][1]
-                                logger.info(f"AI Similarity Check: {similarity:.4f} against {path}")
-                                # 90% threshold for "Near Duplicate"
-                                if similarity > 0.90:
-                                    return "Semantic Duplicate", similarity, record.project_title, record.project_id, record.version
-                            except: continue
+            # Check all document types for similarity
+            for dt in ['srs', 'sdd', 'spmp', 'std', 'ri']:
+                past_text = getattr(record, f"{dt}_text")
+                if past_text and len(past_text) > 100:
+                    try:
+                        vectorizer = TfidfVectorizer().fit_transform([new_text, past_text])
+                        vectors = vectorizer.toarray()
+                        similarity = cosine_similarity(vectors)[0][1]
+                        logger.info(f"AI Similarity Check: {similarity:.4f} against {record.project_title} ({dt.upper()})")
+                        # 90% threshold for "Near Duplicate"
+                        if similarity > 0.90:
+                            return "Semantic Duplicate", similarity, record.project_title, record.project_id, record.version
+                    except: continue
         return None, 0, None, None, None
 
     def download_file(self, file_id, destination_path):
@@ -228,6 +225,7 @@ class ArchivalEngine:
                     
                     # AI Text Extraction for semantic check
                     file_text = self._extract_text_from_pdf(actual_temp_path)
+                    results[doc_type]['text'] = file_text
                     
                     # 3. Check if this specific file changed compared to the last version of THIS project
                     changed = True
@@ -333,6 +331,14 @@ class ArchivalEngine:
                 spmp_binary=results['spmp']['bin'],
                 std_binary=results['std']['bin'],
                 ri_binary=results['ri']['bin'],
+                
+                # AI Cache Storage
+                srs_text=results['srs'].get('text'),
+                sdd_text=results['sdd'].get('text'),
+                spmp_text=results['spmp'].get('text'),
+                std_text=results['std'].get('text'),
+                ri_text=results['ri'].get('text'),
+
                 status=status,
                 version=current_version,
                 error_message=error_msg.strip(),

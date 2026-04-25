@@ -42,6 +42,14 @@ class ArchivalLedger(db.Model):
     spmp_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
     std_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
     ri_binary = db.Column(db.LargeBinary(length=(2**32)-1), nullable=True)
+
+    # AI Cache Columns
+    srs_text = db.Column(db.Text, nullable=True)
+    sdd_text = db.Column(db.Text, nullable=True)
+    spmp_text = db.Column(db.Text, nullable=True)
+    std_text = db.Column(db.Text, nullable=True)
+    ri_text = db.Column(db.Text, nullable=True)
+
     status = db.Column(db.String(50), default='pending')
     version = db.Column(db.Integer, default=1)
     error_message = db.Column(db.Text, nullable=True)

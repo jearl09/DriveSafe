@@ -23,9 +23,9 @@ app = Flask(__name__,
 # --- DATABASE CONFIGURATION ---
 def get_robust_database_uri():
     # Priority 1: Use DATABASE_URL from environment
-    raw_url = os.getenv('DATABASE_URL', '').strip().strip("'").strip('"')
+    raw_url = os.getenv('DATABASE_URL', 'mysql+pymysql://root:123Earl.@localhost/drivesafe_prod').strip().strip("'").strip('"')
     
-    # Validation based on user suggestion
+    # Validation
     if not raw_url or len(raw_url) < 10 or "://" not in raw_url:
         print("⚠️ [DATABASE] Invalid or missing DATABASE_URL. Falling back to SQLite.", flush=True)
         return 'sqlite:///drivesafe.db'
@@ -34,7 +34,7 @@ def get_robust_database_uri():
     # Ensure MySQL/MariaDB use pymysql driver
     if raw_url.startswith('mariadb://'):
         db_url = raw_url.replace('mariadb://', 'mysql+pymysql://', 1)
-    elif raw_url.startswith('mysql://'):
+    elif raw_url.startswith('mysql://') and 'pymysql' not in raw_url:
         db_url = raw_url.replace('mysql://', 'mysql+pymysql://', 1)
     # Fix for Postgres if needed (Render often uses postgres://)
     elif raw_url.startswith('postgres://'):
@@ -48,16 +48,18 @@ def get_robust_database_uri():
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'drivesafe-secret-key')
 app.config['SQLALCHEMY_DATABASE_URI'] = get_robust_database_uri()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False
+app.config['SESSION_COOKIE_HTTPONLY'] = True
 
 # --- COMPONENT INITIALIZATION ---
-# We initialize everything immediately to avoid NameErrors
 db.init_app(app)
 login_manager = LoginManager(app)
 CORS(app, supports_credentials=True)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 @login_manager.unauthorized_handler
 def unauthorized():
@@ -163,6 +165,6 @@ def handle_exception(e):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    # On Railway, the PORT is provided by the environment
+    # On Railway/VPS, the PORT is provided by the environment or defaults to 5000
     port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
+    app.run(debug=True, host='0.0.0.0', port=port)
