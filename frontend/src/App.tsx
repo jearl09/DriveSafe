@@ -5,7 +5,7 @@ import FeaturesPage from "./pages/FeaturesPage";
 import AboutPage from "./pages/AboutPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import BackupHistoryPage from "./pages/BackupHistoryPage";
+import ArchivalLedgerPage from "./pages/ArchivalLedgerPage";
 import RegistryDashboard from "./pages/RegistryDashboard";
 import "./App.css";
 
@@ -53,7 +53,7 @@ function App() {
       case "dashboard":
         return <DashboardPage />;
       case "backup-history":
-        return <BackupHistoryPage />;
+        return <ArchivalLedgerPage />;
       case "registry-dashboard":
         return <RegistryDashboard />;
       default:

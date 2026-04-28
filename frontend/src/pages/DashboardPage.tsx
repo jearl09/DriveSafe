@@ -65,12 +65,12 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
+    <div className="min-h-screen bg-white flex flex-col antialiased">
       {/* Navbar */}
-      <nav className="w-full bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+      <nav className="w-full bg-white border-b border-slate-100 sticky top-0 z-50">
+        <div className="max-w-[1500px] mx-auto px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-2 rounded-lg">
+            <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-100">
               <Database className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight text-slate-900">DriveSafe</span>
@@ -78,13 +78,13 @@ const DashboardPage: React.FC = () => {
           
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-900 leading-none">{user?.name}</p>
-              <p className="text-xs text-slate-500 mt-1">{user?.email}</p>
+              <p className="text-sm font-bold text-slate-900 leading-none">{user?.name}</p>
+              <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{user?.role} Access</p>
             </div>
-            <div className="h-8 w-[1px] bg-slate-200 mx-2 hidden sm:block"></div>
+            <div className="h-8 w-[1px] bg-slate-100 mx-2 hidden sm:block"></div>
             <button 
               onClick={handleLogout}
-              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
               title="Sign Out"
             >
               <LogOut className="w-5 h-5" />
@@ -94,126 +94,109 @@ const DashboardPage: React.FC = () => {
       </nav>
 
       {/* Main Container */}
-      <div className="flex-1 w-full max-w-[1400px] mx-auto p-6 space-y-8">
+      <div className="flex-1 w-full max-w-[1500px] mx-auto px-10 py-10 space-y-12">
         
         {/* Header & Status Section */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-8">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">System Overview</h2>
-            <p className="text-slate-500 text-sm">Automated archival status and management.</p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-2">
+            <h2 className="text-4xl font-black text-slate-900 tracking-tight">System Console</h2>
+            <p className="text-slate-500 font-medium text-lg">Monitoring and managing the registrar's digital archival integrity.</p>
           </div>
-          <div className="flex items-center gap-3 bg-white border border-slate-200 p-1.5 rounded-full shadow-sm">
-            <div className="flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
+          
+          <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-2xl border border-slate-100 shadow-inner">
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-white rounded-xl border border-slate-100 shadow-sm">
               <Activity className="w-3.5 h-3.5 text-blue-500" />
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sync: {stats?.last_sync.split(' ')[1]}</span>
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Last Sync: {stats?.last_sync.split(' ')[1]}</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Cloud Active</span>
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-100">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              <span className="text-[11px] font-bold text-white uppercase tracking-widest">Live Status</span>
             </div>
           </div>
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all duration-500 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Pending Import</p>
-              <p className="text-3xl font-black text-slate-900">{stats?.pending_count}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Ready for Import</p>
+              <p className="text-5xl font-black text-slate-900 group-hover:text-blue-600 transition-colors">{stats?.pending_count}</p>
             </div>
-            <div className="p-4 bg-blue-50 rounded-2xl text-blue-600">
-              <Zap className="w-7 h-7" />
+            <div className="p-6 bg-blue-50 rounded-[2rem] text-blue-600 group-hover:scale-110 transition-transform">
+              <Zap className="w-8 h-8 fill-current" />
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all duration-500 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Archived Total</p>
-              <p className="text-3xl font-black text-slate-900">{stats?.archived_count}</p>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Total Vault Archives</p>
+              <p className="text-5xl font-black text-slate-900 group-hover:text-indigo-600 transition-colors">{stats?.archived_count}</p>
             </div>
-            <div className="p-4 bg-indigo-50 rounded-2xl text-indigo-600">
-              <FileCheck className="w-7 h-7" />
+            <div className="p-6 bg-indigo-50 rounded-[2rem] text-indigo-600 group-hover:scale-110 transition-transform">
+              <FileCheck className="w-8 h-8" />
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+          <div className="group bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl hover:border-emerald-100 transition-all duration-500 flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Cloud Auth Status</p>
-              <p className={`text-xl font-bold ${stats?.service_account_configured ? 'text-emerald-600' : 'text-red-600'}`}>
-                {stats?.service_account_configured ? "Operational" : "Check Config"}
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Cloud Auth Protocol</p>
+              <p className={`text-2xl font-black uppercase tracking-tighter ${stats?.service_account_configured ? 'text-emerald-600' : 'text-red-600'}`}>
+                {stats?.service_account_configured ? "Secured" : "Config Required"}
               </p>
             </div>
-            <div className={`p-4 rounded-2xl ${stats?.service_account_configured ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
-              <ShieldCheck className="w-7 h-7" />
+            <div className={`p-6 rounded-[2rem] group-hover:scale-110 transition-transform ${stats?.service_account_configured ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+              <ShieldCheck className="w-8 h-8" />
             </div>
           </div>
         </div>
 
-        {/* Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-4">
+        {/* Primary Action Suite */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           
-          {/* Card 1 */}
-          <div className="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-            <div className="p-8 space-y-6">
-              <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
-                <LayoutDashboard className="w-6 h-6" />
+          <div className="group relative bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm hover:shadow-2xl transition-all duration-700 overflow-hidden">
+            <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+               <LayoutDashboard className="w-64 h-64 -mr-20 -mt-20 rotate-12" />
+            </div>
+            
+            <div className="relative space-y-8">
+              <div className="w-16 h-16 bg-blue-600 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-blue-200 group-hover:scale-110 transition-transform duration-500">
+                <LayoutDashboard className="w-8 h-8" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-slate-900">Registry Dashboard</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  Manage the archival pipeline. Load academic years, validate drive links, and execute local versioning.
+              <div className="space-y-4">
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Registry Pipeline</h3>
+                <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-md">
+                  Execute the primary archival sequence. Manage sheet IDs, validate student links, and synchronize local storage.
                 </p>
               </div>
               <button 
                 onClick={() => window.location.hash = "registry-dashboard"}
-                className="w-full py-4 px-6 bg-slate-900 hover:bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors group-hover:shadow-lg"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 hover:bg-blue-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.15em] transition-all hover:gap-5 hover:shadow-2xl active:scale-95"
               >
-                Open Registry <ChevronRight className="w-4 h-4" />
+                Launch Pipeline <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Card 2 */}
-          <div className="group bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-            <div className="p-8 space-y-6">
-              <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
-                <History className="w-6 h-6" />
+          <div className="group relative bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm hover:shadow-2xl transition-all duration-700 overflow-hidden">
+            <div className="absolute top-0 right-0 p-12 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+               <History className="w-64 h-64 -mr-20 -mt-20 -rotate-12" />
+            </div>
+
+            <div className="relative space-y-8">
+              <div className="w-16 h-16 bg-indigo-600 rounded-3xl flex items-center justify-center text-white shadow-2xl shadow-indigo-200 group-hover:scale-110 transition-transform duration-500">
+                <History className="w-8 h-8" />
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-slate-900">Archival Ledger</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  View the master history of all archived projects, cryptographic hashes, and server storage paths.
+              <div className="space-y-4">
+                <h3 className="text-3xl font-black text-slate-900 tracking-tight">Archival Ledger</h3>
+                <p className="text-slate-500 text-lg font-medium leading-relaxed max-w-md">
+                  The master historical record. Audit cryptographic signatures, verify version history, and access local binaries.
                 </p>
               </div>
               <button 
                 onClick={() => window.location.hash = "backup-history"}
-                className="w-full py-4 px-6 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 transition-colors group-hover:shadow-lg"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 hover:bg-indigo-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.15em] transition-all hover:gap-5 hover:shadow-2xl active:scale-95"
               >
-                View Ledger <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3 (Locked) */}
-          <div className="bg-slate-100/50 rounded-3xl border border-slate-200 border-dashed overflow-hidden relative">
-            <div className="p-8 space-y-6 opacity-60">
-              <div className="w-12 h-12 bg-slate-300 rounded-xl flex items-center justify-center text-slate-600">
-                <Settings className="w-6 h-6" />
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-slate-900">System Config</h3>
-                  <Lock className="w-4 h-4 text-slate-400" />
-                </div>
-                <p className="text-slate-500 text-sm leading-relaxed">
-                  Configure sheet IDs, service account keys, and local storage parameters for the archival engine.
-                </p>
-              </div>
-              <button 
-                disabled
-                className="w-full py-4 px-6 bg-slate-200 text-slate-500 rounded-xl font-bold cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                Configuration Locked
+                Access Ledger <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
@@ -222,12 +205,18 @@ const DashboardPage: React.FC = () => {
       </div>
 
       {/* Footer */}
-      <footer className="w-full max-w-[1400px] mx-auto px-6 py-10 border-t border-slate-200 mt-auto">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-slate-400 text-xs font-medium">© 2026 DriveSafe • Advanced Registrar Archival Tool</p>
-          <div className="flex items-center gap-6">
-            <a href="#" className="text-slate-400 hover:text-blue-600 text-[10px] font-bold uppercase tracking-widest">Compliance</a>
-            <a href="#" className="text-slate-400 hover:text-blue-600 text-[10px] font-bold uppercase tracking-widest">Privacy Policy</a>
+      <footer className="w-full px-8 py-12 border-t border-slate-50 mt-12 bg-slate-50/30">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+            <div className="p-2 bg-slate-200 rounded-lg">
+                <Database className="w-4 h-4 text-slate-400" />
+            </div>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">DriveSafe Internal Engine v2.0</p>
+          </div>
+          <div className="flex items-center gap-10">
+            <a href="#" className="text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] transition-colors">Compliance</a>
+            <a href="#" className="text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] transition-colors">Data Privacy</a>
+            <a href="#" className="text-slate-400 hover:text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] transition-colors">Audit Logs</a>
           </div>
         </div>
       </footer>
