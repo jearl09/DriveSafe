@@ -338,31 +338,34 @@ def delete_ledger_record(ledger_id):
     
     try:
         # 1. Delete physical files from disk if they exist
+        import re
+        import shutil
         sample_path = record.srs_local_path or record.sdd_local_path or record.spmp_local_path
+        
         if sample_path:
-            # Robust split for both \ and /
-            import re
             parts = re.split(r'[\\/]', sample_path)
             if len(parts) >= 2:
-                # The structure is: WorkbookName / ProjectTitle / ...
-                project_dir = os.path.join(current_app.root_path, 'Capstone_Archives', parts[0], parts[1])
-                if os.path.exists(project_dir):
-                    try:
-                        shutil.rmtree(project_dir)
-                    except Exception as fe:
-                        print(f"File Deletion Warning: {fe}")
-                        # We continue even if file deletion fails to ensure DB record is removed
+                # Build path safely
+                wb_dir = parts[0]
+                proj_dir_name = parts[1]
+                full_proj_path = os.path.join(current_app.root_path, 'Capstone_Archives', wb_dir, proj_dir_name)
+                
+                if os.path.exists(full_proj_path):
+                    shutil.rmtree(full_proj_path)
+                    print(f"DEBUG: Deleted disk folder {full_proj_path}")
 
         # 2. Delete from Database
         db.session.delete(record)
         db.session.commit()
+        print(f"DEBUG: Deleted DB record {ledger_id}")
         
-        return jsonify({"message": "Record deleted successfully."})
+        return jsonify({"message": "Successfully removed record"}), 200
     except Exception as e:
         db.session.rollback()
         import traceback
-        traceback.print_exc()
-        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+        error_trace = traceback.format_exc()
+        print(f"DELETE ERROR: {error_trace}")
+        return jsonify({"error": str(e), "traceback": error_trace}), 500
 
 @registry_bp.route('/api/registry/stats', methods=['GET'])
 @login_required
