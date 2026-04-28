@@ -324,6 +324,40 @@ def get_ledger():
         "archived_at": r.archived_at.strftime("%Y-%m-%d %H:%M:%S") if r.archived_at else None
     } for r in records])
 
+@registry_bp.route('/api/registry/ledger/<int:ledger_id>', methods=['DELETE'])
+@login_required
+def delete_ledger_record(ledger_id):
+    if current_user.role != 'teacher':
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    from models import ArchivalLedger
+    import shutil
+    
+    record = ArchivalLedger.query.get_or_404(ledger_id)
+    
+    try:
+        # 1. Delete physical files from disk if they exist
+        # We look at the first available path to find the project folder
+        sample_path = record.srs_local_path or record.sdd_local_path
+        if sample_path:
+            # The structure is workbook_name/project_title/DOC_TYPE/file.pdf
+            # We want to delete the project_title folder
+            parts = sample_path.split(os.sep)
+            if len(parts) >= 2:
+                project_dir = os.path.join(current_app.root_path, 'Capstone_Archives', parts[0], parts[1])
+                if os.path.exists(project_dir):
+                    shutil.rmtree(project_dir)
+                    print(f"Deleted directory: {project_dir}")
+
+        # 2. Delete from Database
+        db.session.delete(record)
+        db.session.commit()
+        
+        return jsonify({"message": "Record and associated files deleted successfully."})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 @registry_bp.route('/api/registry/stats', methods=['GET'])
 @login_required
 def get_stats():

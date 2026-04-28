@@ -14,7 +14,8 @@ import {
   Archive,
   AlertCircle,
   ArrowLeft,
-  FolderOpen
+  FolderOpen,
+  Trash2
 } from 'lucide-react';
 
 // --- Interfaces ---
@@ -114,8 +115,26 @@ const ArchivalLedgerPage: React.FC = () => {
         window.open(`/api/registry/download/${ledgerId}/${type.toLowerCase()}?preview=1`, '_blank');
     };
 
-    const handleDownload = (ledgerId: number, type: string) => {
-        window.location.href = `/api/registry/download/${ledgerId}/${type.toLowerCase()}`;
+    const handleDownload = (ledger_id: number, type: string) => {
+        window.location.href = `/api/registry/download/${ledger_id}/${type.toLowerCase()}`;
+    };
+
+    const handleDelete = async (id: number, title: string) => {
+        if (!window.confirm(`Are you sure you want to permanently delete the archival record for "${title}"? This will remove the files from both the database and the server disk.`)) {
+            return;
+        }
+
+        try {
+            await axios.delete(`/api/registry/ledger/${id}`, { withCredentials: true });
+            setRawRecords(prev => prev.filter(r => r.id !== id));
+            // Also remove from expanded set if it was there
+            const newExpanded = new Set(expandedProjects);
+            newExpanded.delete(id);
+            setExpandedProjects(newExpanded);
+        } catch (err) {
+            console.error("Failed to delete record", err);
+            alert("Failed to delete record. Check console for details.");
+        }
     };
 
     // --- Helper Components ---
@@ -260,6 +279,16 @@ const ArchivalLedgerPage: React.FC = () => {
                                         <div className={`p-2 rounded-full transition-transform duration-300 ${expandedProjects.has(project.id) ? 'rotate-180 bg-blue-50 text-blue-600' : 'text-slate-400'}`}>
                                             <ChevronDown className="w-5 h-5" />
                                         </div>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(project.id, project.project_title);
+                                            }}
+                                            className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+                                            title="Delete Record"
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
                                     </div>
                                 </div>
 
