@@ -337,26 +337,31 @@ def delete_ledger_record(ledger_id):
     
     try:
         # 1. Delete physical files from disk if they exist
-        # We look at the first available path to find the project folder
-        sample_path = record.srs_local_path or record.sdd_local_path
+        sample_path = record.srs_local_path or record.sdd_local_path or record.spmp_local_path
         if sample_path:
-            # The structure is workbook_name/project_title/DOC_TYPE/file.pdf
-            # We want to delete the project_title folder
-            parts = sample_path.split(os.sep)
+            # Robust split for both \ and /
+            import re
+            parts = re.split(r'[\\/]', sample_path)
             if len(parts) >= 2:
+                # The structure is: WorkbookName / ProjectTitle / ...
                 project_dir = os.path.join(current_app.root_path, 'Capstone_Archives', parts[0], parts[1])
                 if os.path.exists(project_dir):
-                    shutil.rmtree(project_dir)
-                    print(f"Deleted directory: {project_dir}")
+                    try:
+                        shutil.rmtree(project_dir)
+                    except Exception as fe:
+                        print(f"File Deletion Warning: {fe}")
+                        # We continue even if file deletion fails to ensure DB record is removed
 
         # 2. Delete from Database
         db.session.delete(record)
         db.session.commit()
         
-        return jsonify({"message": "Record and associated files deleted successfully."})
+        return jsonify({"message": "Record deleted successfully."})
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
 
 @registry_bp.route('/api/registry/stats', methods=['GET'])
 @login_required
