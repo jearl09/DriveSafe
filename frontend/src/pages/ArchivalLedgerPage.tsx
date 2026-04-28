@@ -4,7 +4,6 @@ import {
   Search, 
   Filter, 
   ChevronDown, 
-  ChevronRight, 
   FileText, 
   Download, 
   Eye, 
@@ -14,7 +13,6 @@ import {
   Hash,
   Archive,
   AlertCircle,
-  ExternalLink,
   ArrowLeft,
   FolderOpen
 } from 'lucide-react';

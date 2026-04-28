@@ -3,7 +3,6 @@ import axios from "axios";
 import { 
   LayoutDashboard, 
   History, 
-  Settings, 
   LogOut, 
   ShieldCheck, 
   Zap, 
@@ -11,7 +10,6 @@ import {
   RefreshCw,
   Activity,
   FileCheck,
-  Lock,
   ChevronRight
 } from "lucide-react";
 
