@@ -106,9 +106,29 @@ const ArchivalLedgerPage: React.FC = () => {
     };
 
     const copyToClipboard = (hash: string) => {
-        navigator.clipboard.writeText(hash);
-        setCopiedHash(hash);
-        setTimeout(() => setCopiedHash(null), 2000);
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+            // Fallback for non-HTTPS or unsupported browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = hash;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                setCopiedHash(hash);
+                setTimeout(() => setCopiedHash(null), 2000);
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+            }
+            document.body.removeChild(textArea);
+            return;
+        }
+
+        navigator.clipboard.writeText(hash).then(() => {
+            setCopiedHash(hash);
+            setTimeout(() => setCopiedHash(null), 2000);
+        }).catch(err => {
+            console.error('Async copy failed', err);
+        });
     };
 
     const handleView = (ledgerId: number, type: string) => {

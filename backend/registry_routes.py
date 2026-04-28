@@ -5,6 +5,7 @@ import requests
 import threading
 from registry_sheets import RegistrySheetsService
 from archival_engine import ArchivalEngine
+from models import db
 
 registry_bp = Blueprint('registry', __name__)
 
