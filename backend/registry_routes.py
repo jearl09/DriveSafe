@@ -237,15 +237,22 @@ def download_from_db(ledger_id, doc_type):
     clean_title = record.project_title.replace(' ', '_').replace('/', '_')
     filename = f"{clean_title}_{doc_type.upper()}_v{record.version}{ext}"
 
-    # Determine mime type
-    mime_type, _ = mimetypes.guess_type(filename)
-    if not mime_type:
-        mime_type = 'application/octet-stream'
+    # Ensure extension is .pdf for the browser to recognize it
+    filename = f"{clean_title}_{doc_type.upper()}_v{record.version}.pdf"
+
+    if preview:
+        return send_file(
+            io.BytesIO(binary_data),
+            mimetype='application/pdf',
+            as_attachment=False,
+            download_name=filename,
+            max_age=0 # Prevent browser caching old headers
+        )
 
     return send_file(
         io.BytesIO(binary_data),
-        mimetype=mime_type,
-        as_attachment=not preview,
+        mimetype='application/pdf',
+        as_attachment=True,
         download_name=filename
     )
 
