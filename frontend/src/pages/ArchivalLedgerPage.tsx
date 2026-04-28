@@ -78,7 +78,7 @@ const ArchivalLedgerPage: React.FC = () => {
                 { type: 'SDD', path: r.sdd_path, hash: r.sdd_hash, label: 'Software Design Document' },
                 { type: 'SPMP', path: r.spmp_path, hash: r.spmp_hash, label: 'Software Project Management Plan' },
                 { type: 'STD', path: r.std_path, hash: r.std_hash, label: 'Software Test Document' },
-                { type: 'RI', path: r.ri_path, hash: r.ri_hash, label: 'Repository Information' },
+                { type: 'RI', path: r.ri_path, hash: r.ri_hash, label: 'Requirements Inventory' },
             ].filter(f => f.path) as FileRecord[] // Only show files that actually exist
         }));
     }, [rawRecords]);

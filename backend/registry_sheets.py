@@ -84,7 +84,7 @@ class RegistrySheetsService:
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Batch update for efficiency
-        # Status (H), Last Updated (I), SRS Path (J), SDD Path (K), SPMP (L), STD (M), RI (N), Error (O)
+        # Status (H), Last Updated (I), SRS (J), SDD (K), SPMP (L), STD (M), RI (N), Error (O)
         # H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15
         
         updates = [
