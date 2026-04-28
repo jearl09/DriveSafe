@@ -1,0 +1,35 @@
+name: Deploy to Hostinger VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOSTINGER_IP }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
+          password: ${{ secrets.HOSTINGER_PASSWORD }}
+          script: |
+            cd /var/www/drivesafe
+            git fetch origin main
+            git reset --hard origin/main
+            
+            # Update Backend
+            /var/www/drivesafe/backend/venv/bin/pip install -r backend/requirements.txt
+            /var/www/drivesafe/backend/venv/bin/python3 backend/migrate_db.py
+            
+            # Update Frontend
+            cd frontend
+            npm install
+            npm run build
+            
+            # Restart Application
+            pkill python3 || true
+            cd /var/www/drivesafe/backend
+            nohup /var/www/drivesafe/backend/venv/bin/python3 app.py > output.log 2>&1 &
