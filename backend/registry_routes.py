@@ -303,73 +303,78 @@ def get_grouped_ledger():
     if current_user.role != 'teacher':
         return jsonify({"error": "Unauthorized"}), 403
     
-    from models import ArchivalLedger
-    from sqlalchemy.orm import defer
-    from collections import defaultdict
+    try:
+        from models import ArchivalLedger
+        from sqlalchemy.orm import defer
+        from collections import defaultdict
 
-    academic_year = request.args.get('year')
-    query = ArchivalLedger.query.options(
-        defer(ArchivalLedger.srs_binary), 
-        defer(ArchivalLedger.sdd_binary),
-        defer(ArchivalLedger.spmp_binary),
-        defer(ArchivalLedger.std_binary),
-        defer(ArchivalLedger.ri_binary)
-    )
+        academic_year = request.args.get('year')
+        query = ArchivalLedger.query.options(
+            defer(ArchivalLedger.srs_binary), 
+            defer(ArchivalLedger.sdd_binary),
+            defer(ArchivalLedger.spmp_binary),
+            defer(ArchivalLedger.std_binary),
+            defer(ArchivalLedger.ri_binary)
+        )
 
-    if academic_year:
-        query = query.filter_by(academic_year=academic_year)
-    
-    # Process history chronologically (ASC) to calculate versions correctly
-    records = query.order_by(ArchivalLedger.id.asc()).all()
-    
-    # Track state for per-document versions
-    # last_hashes[project_key][doc_type] = hash
-    last_hashes = defaultdict(lambda: defaultdict(lambda: None))
-    # doc_versions[project_key][doc_type] = version_count
-    doc_versions = defaultdict(lambda: defaultdict(int))
-
-    grouped_data = {}
-
-    for r in records:
-        project_key = f"{r.project_id}_{r.project_title}"
+        if academic_year:
+            query = query.filter_by(academic_year=academic_year)
         
-        if project_key not in grouped_data:
-            grouped_data[project_key] = {
-                "project_id": r.project_id,
-                "project_title": r.project_title,
-                "academic_year": r.academic_year,
-                "documents": {
-                    "srs": [], "sdd": [], "spmp": [], "std": [], "ri": []
-                }
-            }
+        # Process history chronologically (ASC) to calculate versions correctly
+        records = query.order_by(ArchivalLedger.id.asc()).all()
         
-        target = grouped_data[project_key]
-        
-        for doc_type in ["srs", "sdd", "spmp", "std", "ri"]:
-            path = getattr(r, f"{doc_type}_local_path")
-            current_hash = getattr(r, f"{doc_type}_hash")
+        if not records:
+            return jsonify([])
+
+        # Track state for per-document versions
+        last_hashes = defaultdict(lambda: defaultdict(lambda: None))
+        doc_versions = defaultdict(lambda: defaultdict(int))
+
+        grouped_data = {}
+
+        for r in records:
+            project_key = f"{r.project_id}_{r.project_title}"
             
-            if path and current_hash:
-                # If the hash is different from the previous archival run, it's a new version
-                if current_hash != last_hashes[project_key][doc_type]:
-                    last_hashes[project_key][doc_type] = current_hash
-                    doc_versions[project_key][doc_type] += 1
-                    
-                    target["documents"][doc_type].append({
-                        "id": r.id,
-                        "version": doc_versions[project_key][doc_type], # CORRECT: Per-doc version
-                        "hash": current_hash,
-                        "timestamp": r.archived_at.strftime("%Y-%m-%d %H:%M:%S") if r.archived_at else None,
-                        "status": r.status
-                    })
+            if project_key not in grouped_data:
+                grouped_data[project_key] = {
+                    "project_id": r.project_id,
+                    "project_title": r.project_title,
+                    "academic_year": r.academic_year,
+                    "documents": {
+                        "srs": [], "sdd": [], "spmp": [], "std": [], "ri": []
+                    }
+                }
+            
+            target = grouped_data[project_key]
+            
+            for doc_type in ["srs", "sdd", "spmp", "std", "ri"]:
+                path = getattr(r, f"{doc_type}_local_path")
+                current_hash = getattr(r, f"{doc_type}_hash")
+                
+                if path and current_hash:
+                    # If the hash is different from the previous archival run, it's a new version
+                    if current_hash != last_hashes[project_key][doc_type]:
+                        last_hashes[project_key][doc_type] = current_hash
+                        doc_versions[project_key][doc_type] += 1
+                        
+                        target["documents"][doc_type].append({
+                            "id": r.id,
+                            "version": doc_versions[project_key][doc_type], # CORRECT: Per-doc version
+                            "hash": current_hash,
+                            "timestamp": r.archived_at.strftime("%Y-%m-%d %H:%M:%S") if r.archived_at else None,
+                            "status": r.status
+                        })
 
-    # Reverse to show newest first for the UI
-    result = list(grouped_data.values())
-    for project in result:
-        for doc_type in project["documents"]:
-            project["documents"][doc_type].reverse()
+        # Reverse to show newest first for the UI
+        result = list(grouped_data.values())
+        for project in result:
+            for doc_type in project["documents"]:
+                project["documents"][doc_type].reverse()
 
-    return jsonify(result)
+        return jsonify(result)
+    except Exception as e:
+        current_app.logger.error(f"Ledger Group Error: {e}")
+        return jsonify([])
 
 @registry_bp.route('/api/registry/ledger/tabs', methods=['GET'])
 @login_required
@@ -377,10 +382,14 @@ def get_ledger_tabs():
     if current_user.role != 'teacher':
         return jsonify({"error": "Unauthorized"}), 403
     
-    from models import ArchivalLedger
-    # Get distinct academic years from the database
-    years = db.session.query(ArchivalLedger.academic_year).distinct().all()
-    return jsonify([y[0] for y in years if y[0]])
+    try:
+        from models import ArchivalLedger
+        # Get distinct academic years from the database
+        years = db.session.query(ArchivalLedger.academic_year).distinct().all()
+        return jsonify([y[0] for y in years if y and y[0]])
+    except Exception as e:
+        current_app.logger.error(f"Ledger Tabs Error: {e}")
+        return jsonify([])
 
 @registry_bp.route('/api/registry/ledger', methods=['GET'])
 @login_required

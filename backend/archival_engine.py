@@ -106,27 +106,32 @@ class ArchivalEngine:
             file_metadata = self.service.files().get(fileId=file_id, fields='mimeType, name, size').execute()
             mime_type = file_metadata.get('mimeType')
             file_name = file_metadata.get('name')
-            logger.info(f"Attempting to download: {file_name} (Type: {mime_type})")
+            logger.info(f"Attempting to process: {file_name} (Type: {mime_type})")
 
             fh = io.BytesIO()
-            final_ext = ".pdf" # We want everything as PDF for viewing
+            final_ext = ".pdf"
             
             # Case 1: Native Google Docs/Sheets
-            if 'google-apps.document' in mime_type:
+            if 'google-apps.document' in mime_type or 'google-apps.spreadsheet' in mime_type:
+                logger.info(f"Exporting Google Doc {file_name} to PDF...")
                 request = self.service.files().export_media(fileId=file_id, mimeType='application/pdf')
-            elif 'google-apps.spreadsheet' in mime_type:
-                request = self.service.files().export_media(fileId=file_id, mimeType='application/pdf')
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
             
             # Case 2: MS Office Files (.docx, .xlsx)
             elif 'officedocument.wordprocessingml.document' in mime_type or 'officedocument.spreadsheetml.sheet' in mime_type:
                 logger.info(f"Converting Office file {file_name} to PDF via temporary Google Doc upload...")
-                # To convert to PDF, we "import" it as a Google Doc/Sheet first
+                
+                # Download original bytes
+                media_content = self.service.files().get_media(fileId=file_id).execute()
+                
+                # Upload as a temporary Google Doc
                 temp_metadata = {
                     'name': f"TEMP_CONV_{file_name}",
                     'mimeType': 'application/vnd.google-apps.document' if 'document' in mime_type else 'application/vnd.google-apps.spreadsheet'
                 }
-                # Use the original file as media for the new temp file
-                media_content = self.service.files().get_media(fileId=file_id).execute()
                 from googleapiclient.http import MediaIoBaseUpload
                 temp_file = self.service.files().create(
                     body=temp_metadata,
@@ -135,43 +140,43 @@ class ArchivalEngine:
                 ).execute()
                 temp_id = temp_file.get('id')
                 
-                # Now export the temp Google Doc as PDF
-                request = self.service.files().export_media(fileId=temp_id, mimeType='application/pdf')
-                
-                # Execute the export
-                downloader = MediaIoBaseDownload(fh, request)
-                done = False
-                while not done:
-                    status, done = downloader.next_chunk()
-                
-                # Cleanup the temporary file
-                self.service.files().delete(fileId=temp_id).execute()
+                try:
+                    # Export the temporary Google Doc as PDF
+                    request = self.service.files().export_media(fileId=temp_id, mimeType='application/pdf')
+                    downloader = MediaIoBaseDownload(fh, request)
+                    done = False
+                    while not done:
+                        status, done = downloader.next_chunk()
+                finally:
+                    # CLEANUP: Always delete the temporary conversion file
+                    self.service.files().delete(fileId=temp_id).execute()
             
             # Case 3: Already a PDF
             elif 'pdf' in mime_type:
+                logger.info(f"Downloading {file_name} as direct PDF...")
                 request = self.service.files().get_media(fileId=file_id)
-            
-            # Case 4: Other files (try direct download)
-            else:
-                logger.warning(f"Unknown mime-type {mime_type}, downloading as-is but still aiming for .pdf destination.")
-                request = self.service.files().get_media(fileId=file_id)
-                final_ext = os.path.splitext(file_name)[1] or ".bin"
-
-            # If request hasn't been executed yet (Cases 1, 3, 4)
-            if fh.tell() == 0:
                 downloader = MediaIoBaseDownload(fh, request)
                 done = False
                 while not done:
                     status, done = downloader.next_chunk()
             
+            # Case 4: Other files (try direct download)
+            else:
+                logger.warning(f"Unknown mime-type {mime_type}, downloading as-is.")
+                request = self.service.files().get_media(fileId=file_id)
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
+                final_ext = os.path.splitext(file_name)[1] or ".bin"
+
             content = fh.getvalue()
             if len(content) == 0:
-                raise Exception("Downloaded file is empty.")
+                raise Exception("Downloaded content is empty.")
 
-            # Ensure destination ends with the correct extension
-            if not destination_path.endswith(final_ext):
-                base = os.path.splitext(destination_path)[0]
-                destination_path = base + final_ext
+            # Fix extension if needed
+            if not destination_path.lower().endswith(final_ext.lower()):
+                destination_path = os.path.splitext(destination_path)[0] + final_ext
 
             with open(destination_path, 'wb') as f:
                 f.write(content)
