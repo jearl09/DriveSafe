@@ -1,4 +1,4 @@
-import { Database, ShieldCheck, Target, Users, Landmark, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Database, ShieldCheck, Target, Users, Landmark, CheckCircle2 } from "lucide-react";
 
 const AboutPage = () => {
   return (

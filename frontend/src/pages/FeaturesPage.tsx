@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
   Database, Shield, Zap, Clock, CheckCircle2, 
-  ArrowLeft, ChevronRight, X, LayoutDashboard
+  ChevronRight, X, LayoutDashboard
 } from "lucide-react";
 
 interface Feature {

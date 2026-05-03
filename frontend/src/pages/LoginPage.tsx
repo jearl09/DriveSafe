@@ -1,4 +1,3 @@
-import React from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 import { Database, ShieldCheck, X } from "lucide-react";
 

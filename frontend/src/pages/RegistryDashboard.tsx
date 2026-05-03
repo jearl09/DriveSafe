@@ -6,8 +6,7 @@ import {
   CheckCircle, 
   AlertCircle, 
   ExternalLink, 
-  Download, 
-  Search,
+  Download,
   Database,
   ChevronDown
 } from 'lucide-react';
