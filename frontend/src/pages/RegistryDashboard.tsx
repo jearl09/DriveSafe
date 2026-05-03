@@ -7,9 +7,9 @@ import {
   AlertCircle, 
   ExternalLink, 
   Download,
-  Database,
   ChevronDown
-} from 'lucide-react';
+} from "lucide-react";
+import Logo from "../components/Logo";
 
 interface Project {
     row_index: number;
@@ -169,8 +169,8 @@ const RegistryDashboard: React.FC = () => {
                         </button>
                         <div className="h-6 w-px bg-gray-100"></div>
                         <div className="flex items-center gap-2">
-                            <div className="bg-indigo-600 p-1.5 rounded-lg">
-                                <Database className="w-4 h-4 text-white" />
+                            <div className="bg-indigo-600 p-1.5 rounded-lg flex items-center justify-center">
+                                <Logo size={16} />
                             </div>
                             <span className="text-lg font-bold text-gray-900 tracking-tight">Registry Pipeline</span>
                         </div>

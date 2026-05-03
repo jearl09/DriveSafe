@@ -3,6 +3,7 @@ import {
   Database, Shield, Zap, Clock, CheckCircle2, 
   ChevronRight, X, LayoutDashboard
 } from "lucide-react";
+import Logo from "../components/Logo";
 
 interface Feature {
   id: number;
@@ -77,8 +78,8 @@ const FeaturesPage = () => {
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-indigo-600 p-2 rounded-lg">
-              <Database className="w-5 h-5 text-white" />
+            <div className="bg-indigo-600 p-2 rounded-lg flex items-center justify-center">
+              <Logo size={20} />
             </div>
             <span className="text-xl font-bold text-gray-900 tracking-tight">DriveSafe</span>
           </div>

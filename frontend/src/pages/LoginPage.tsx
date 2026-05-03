@@ -1,5 +1,6 @@
 import { useGoogleLogin } from "@react-oauth/google";
-import { Database, ShieldCheck, X } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
+import Logo from "../components/Logo";
 
 const LoginPage = () => {
   const googleLogin = useGoogleLogin({
@@ -34,8 +35,8 @@ const LoginPage = () => {
       {/* Branding top-left */}
       <div className="fixed top-0 left-0 p-6">
         <div className="flex items-center gap-2">
-          <div className="bg-indigo-600 p-2 rounded-lg">
-            <Database className="w-5 h-5 text-white" />
+          <div className="bg-indigo-600 p-2 rounded-lg flex items-center justify-center">
+            <Logo size={20} />
           </div>
           <span className="text-xl font-bold text-gray-900 tracking-tight">DriveSafe</span>
         </div>
@@ -51,7 +52,7 @@ const LoginPage = () => {
 
         <div className="p-10 text-center space-y-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-50 rounded-3xl text-indigo-600">
-            <Database className="w-10 h-10" />
+            <Logo size={40} />
           </div>
           
           <div className="space-y-2">

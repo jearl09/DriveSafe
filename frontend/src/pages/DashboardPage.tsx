@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { 
-  Database, 
   LogOut, 
   Zap, 
   FileCheck, 
@@ -12,6 +11,7 @@ import {
   RefreshCw,
   Activity
 } from "lucide-react";
+import Logo from "../components/Logo";
 
 interface UserInfo { email: string; name: string; role: string; }
 interface DashboardStats { archived_count: number; pending_count: number; service_account_configured: boolean; last_sync: string; }
@@ -59,8 +59,8 @@ const DashboardPage: React.FC = () => {
       <nav className="bg-white/70 backdrop-blur-xl border-b border-gray-200/50 sticky top-0 z-50 transition-all">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-xl shadow-md shadow-indigo-200">
-              <Database className="w-5 h-5 text-white" />
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-xl shadow-md shadow-indigo-200 flex items-center justify-center">
+              <Logo size={20} />
             </div>
             <span className="text-xl font-black text-gray-900 tracking-tight">DriveSafe</span>
           </div>
@@ -173,7 +173,9 @@ const DashboardPage: React.FC = () => {
 
       <footer className="mt-auto p-10 border-t border-gray-200/50 bg-white/50 backdrop-blur-md flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] relative z-10">
         <div className="flex items-center gap-3">
-          <div className="bg-gray-200 p-1.5 rounded-md"><Database className="w-3 h-3 text-gray-500" /></div>
+          <div className="bg-gray-200 p-1.5 rounded-md flex items-center justify-center">
+            <Logo size={12} className="opacity-50" />
+          </div>
           DriveSafe Engine v2.0
         </div>
         <div className="flex gap-8">

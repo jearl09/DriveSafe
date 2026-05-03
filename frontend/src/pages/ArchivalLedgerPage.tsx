@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { 
   Folder, ChevronRight, ChevronDown, FileText, Download, Eye, Calendar, 
-  Search, Hash, Clock, ArrowLeft, Database, Copy, Check, Trash2, Code, BarChart3, ClipboardCheck, FileSearch, RefreshCw 
+  Search, Hash, Clock, ArrowLeft, Copy, Check, Trash2, Code, BarChart3, ClipboardCheck, FileSearch, RefreshCw 
 } from "lucide-react";
+import Logo from "../components/Logo";
 
 interface Version { id: number; version: number; hash: string; timestamp: string; status: string; }
 interface ProjectGroup {
@@ -95,8 +96,8 @@ const ArchivalLedgerPage = () => {
             </button>
             <div className="h-6 w-px bg-gray-200"></div>
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-1.5 rounded-lg shadow-sm">
-                <Database className="w-4 h-4 text-white" />
+              <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-1.5 rounded-lg shadow-sm flex items-center justify-center">
+                <Logo size={16} />
               </div>
               <span className="text-lg font-black text-gray-900 tracking-tight">Archival Ledger</span>
             </div>
