@@ -41,7 +41,7 @@ const RegistryDashboard: React.FC = () => {
 
     // Auto-refresh logic while processing
     useEffect(() => {
-        let interval: NodeJS.Timeout;
+        let interval: any;
         if (isProcessing) {
             // Poll every 5 seconds while processing
             interval = setInterval(() => {
