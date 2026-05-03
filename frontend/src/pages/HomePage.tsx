@@ -1,179 +1,144 @@
-// HomePage.tsx
-// Main landing page for DriveSafe
+import React from 'react';
+import { 
+  Shield, 
+  Zap, 
+  Clock, 
+  ArrowRight, 
+  Database,
+  CheckCircle2
+} from 'lucide-react';
 
 const HomePage = () => {
-  
-  // 1. Function to handle navigation to Sign In
   const handleGetStarted = () => {
     window.location.hash = "signin";
   };
 
   return (
-    <div className="drivesafe-landing-page">
-      {/* Header Section */}
-      <header className="header">
-        <div className="container">
-          <div className="logo-container">
-            <div className="logo-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="3" width="18" height="18" rx="2" fill="#2563eb"/>
-                <rect x="7" y="7" width="10" height="10" rx="1" fill="white"/>
-                <rect x="9" y="9" width="6" height="6" rx="0.5" fill="#2563eb"/>
-              </svg>
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans relative overflow-hidden">
+      {/* Background Mesh Gradients */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-500/10 blur-[100px] pointer-events-none"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none"></div>
+
+      {/* Navigation (Glassmorphism) */}
+      <nav className="bg-white/70 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-50 transition-all">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-lg shadow-md shadow-indigo-200">
+              <Database className="w-5 h-5 text-white" />
             </div>
-            <div className="logo">DriveSafe</div>
+            <span className="text-xl font-black text-gray-900 tracking-tight">DriveSafe</span>
           </div>
-          <nav className="nav">
-            <a href="#">Home</a>
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
-            {/* 2. Added onClick here */}
-            <button className="btn btn-primary btn-header" onClick={handleGetStarted}>
+          <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-500 uppercase tracking-widest">
+            <a href="#" className="hover:text-indigo-600 transition-colors">Home</a>
+            <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
+            <a href="#about" className="hover:text-indigo-600 transition-colors">About</a>
+            <button 
+              onClick={handleGetStarted}
+              className="bg-indigo-600 text-white px-6 py-2.5 rounded-xl font-black hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 hover:shadow-xl hover:-translate-y-0.5"
+            >
               Get Started
             </button>
-          </nav>
+          </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <section className="hero" id="home">
-        <div className="container">
-          {/* Two-column layout */}
-          <div className="hero-layout">
-            <div className="hero-content">
-              <div className="badge-container">
-                <div className="badge">Free for Students & Educators</div>
-              </div>
-              
-              <h1 className="hero-title">Automated Google Drive Backup Tool</h1>
-              <p className="hero-description">
-                Protect your academic files with one-click automated backups. Simple, secure, and compliant with data privacy laws.
-              </p>
-              
-              <div className="features-highlight">
-                <div className="feature-item">
-                  <div className="feature-icon feature-icon-shield">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M10 2L3 5V9C3 13.55 6.36 17.74 10 19C13.64 17.74 17 13.55 17 9V5L10 2Z" stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-                    </svg>
-                  </div>
-                  <div className="feature-content">
-                    <h3>Enterprise Security</h3>
-                    <p>OAuth 2.0 authentication with RA 10173 compliance</p>
-                  </div>
-                </div>
-                
-                <div className="feature-item">
-                  <div className="feature-icon feature-icon-lightning">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11 2L4 12H10L9 18L16 8H10L11 2Z" fill="#9333ea" stroke="#9333ea" strokeWidth="1"/>
-                    </svg>
-                  </div>
-                  <div className="feature-content">
-                    <h3>Lightning Fast</h3>
-                    <p>Process 100 files in under 2 minutes</p>
-                  </div>
-                </div>
-                
-                <div className="feature-item">
-                  <div className="feature-icon feature-icon-clock">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="10" cy="10" r="8" stroke="#ec4899" strokeWidth="2" fill="none"/>
-                      <path d="M10 6V10L13 13" stroke="#ec4899" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </div>
-                  <div className="feature-content">
-                    <h3>Backup History</h3>
-                    <p>Access and manage your last 5 backups</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="stats">
-                <div className="stat-item">
-                  <div className="stat-value">100 files</div>
-                  <div className="stat-label">Per backup</div>
-                </div>
-                
-                <div className="stat-item">
-                  <div className="stat-value">&lt; 2 minutes</div>
-                  <div className="stat-label">Average time</div>
-                </div>
-                
-                <div className="stat-item">
-                  <div className="stat-value">95%</div>
-                  <div className="stat-label">Success rate</div>
-                </div>
-              </div>
+      <main className="flex-1 relative z-10">
+        <section className="py-24 px-6 relative">
+          <div className="max-w-7xl mx-auto text-center space-y-8">
+            <div className="inline-flex items-center gap-2 bg-white/60 backdrop-blur-sm border border-indigo-100 px-5 py-2 rounded-full text-indigo-700 text-xs font-black uppercase tracking-widest shadow-sm">
+              <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
+              Free for Students & Educators
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black text-gray-900 tracking-tighter max-w-4xl mx-auto leading-[1.1]">
+              Automated Google Drive <br className="hidden md:block" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 animate-pulse">Backup Tool</span>
+            </h1>
+            <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto leading-relaxed">
+              Protect your academic files with one-click automated backups. Simple, secure, and compliant with data privacy laws.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
+              <button 
+                onClick={handleGetStarted}
+                className="w-full sm:w-auto bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 hover:shadow-2xl hover:-translate-y-1 flex items-center justify-center gap-3"
+              >
+                Get Started Free <ArrowRight className="w-5 h-5" />
+              </button>
+              <a 
+                href="#features"
+                className="w-full sm:w-auto bg-white border border-gray-200 text-gray-700 px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-gray-50 hover:border-gray-300 transition-all text-center shadow-sm hover:shadow-md"
+              >
+                View Features
+              </a>
             </div>
             
-            {/* Right Column */}
-            <div className="hero-sidebar">
-              <div className="combined-container">
-                <h2 className="container-title">Get Started</h2>
-                <p className="container-subtitle">Sign in with your Google account to start backing up your files</p>
-                
-                {/* 3. Added onClick here too */}
-                <button className="btn btn-primary btn-medium btn-full-width" onClick={handleGetStarted}>
-                  Get Started Free <span className="arrow">→</span>
-                </button>
-                
-                <div className="container-details">
-                  <p className="detail-item"><span className="checkmark">✓</span> No credit card required</p>
-                  <p className="detail-item"><span className="checkmark">✓</span> RA 10173 compliant</p>
-                  <p className="detail-item"><span className="checkmark">✓</span> MD5 integrity verification</p>
-                  <hr className="divider" />
-                  <p className="terms-text">By continuing, you agree to our Terms & Privacy Policy</p>
+            <div className="pt-12 flex flex-wrap justify-center gap-8 text-xs font-bold text-gray-400 uppercase tracking-widest">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> No credit card required
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> RA 10173 compliant
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> MD5 verified
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Preview */}
+        <section id="features" className="py-24 bg-white/50 backdrop-blur-3xl border-y border-gray-200/50">
+          <div className="max-w-7xl mx-auto px-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="p-8 rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:border-indigo-100 hover:-translate-y-2 transition-all duration-500 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-inner">
+                  <Shield className="w-7 h-7" />
                 </div>
+                <h3 className="text-xl font-black text-gray-900 mb-3">Enterprise Security</h3>
+                <p className="text-gray-500 font-medium leading-relaxed">
+                  OAuth 2.0 authentication ensures your data remains private and secure under your control.
+                </p>
+              </div>
+
+              <div className="p-8 rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:border-purple-100 hover:-translate-y-2 transition-all duration-500 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shadow-inner">
+                  <Zap className="w-7 h-7" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 mb-3">Lightning Fast</h3>
+                <p className="text-gray-500 font-medium leading-relaxed">
+                  Process up to 100 files in under 2 minutes with our optimized multi-threaded engine.
+                </p>
+              </div>
+
+              <div className="p-8 rounded-[2.5rem] bg-white border border-gray-100 shadow-sm hover:shadow-2xl hover:border-pink-100 hover:-translate-y-2 transition-all duration-500 group">
+                <div className="w-14 h-14 bg-gradient-to-br from-pink-50 to-pink-100 rounded-2xl flex items-center justify-center text-pink-600 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300 shadow-inner">
+                  <Clock className="w-7 h-7 animate-float" />
+                </div>
+                <h3 className="text-xl font-black text-gray-900 mb-3">Backup History</h3>
+                <p className="text-gray-500 font-medium leading-relaxed">
+                  Access and manage your version history easily with our intuitive ledger system.
+                </p>
               </div>
             </div>
           </div>
-          
-          {/* Trusted By Section */}
-          <div className="trusted-section">
-            <h3>Trusted by students and educators at</h3>
-            <div className="logos">
-              <div className="logo-item">
-                <div className="logo-placeholder">CEBU INSTITUTE OF TECHNOLOGY UNIVERSITY</div>
+        </section>
+
+        {/* Trusted By */}
+        <section className="py-24 px-6">
+          <div className="max-w-7xl mx-auto text-center space-y-10">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Trusted by students and educators at</p>
+            <div className="flex justify-center">
+              <div className="bg-white/80 backdrop-blur-md px-10 py-5 rounded-2xl border border-gray-200/50 shadow-lg shadow-gray-200/20 text-gray-800 font-black tracking-tighter text-2xl md:text-3xl hover:scale-105 transition-transform duration-500 cursor-default">
+                CEBU INSTITUTE OF TECHNOLOGY UNIVERSITY
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-column">
-              <h3>DriveSafe</h3>
-              <p>Protecting your academic files with automated backups.</p>
-            </div>
-            
-            <div className="footer-column">
-              <h4>Product</h4>
-              <a href="#">Home</a>
-              <a href="#features">Features</a>
-              <a href="#about">About</a>
-            </div>
-            
-            <div className="footer-column">
-              <h4>Resources</h4>
-              <a href="#">Documentation</a>
-              <a href="#">Support</a>
-            </div>
-            
-            <div className="footer-column">
-              <h4>Legal</h4>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-            </div>
-          </div>
-          
-          <div className="footer-bottom">
-            <p>&copy; 2023 DriveSafe. All rights reserved.</p>
-          </div>
-        </div>
+      <footer className="bg-white/80 backdrop-blur-md border-t border-gray-200/50 py-12 px-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] text-center z-10">
+        <p>&copy; 2026 DriveSafe &bull; RA 10173 Compliant &bull; Secure Archival System</p>
       </footer>
     </div>
   );

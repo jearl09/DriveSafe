@@ -7,7 +7,9 @@ import {
   AlertCircle, 
   ExternalLink, 
   Download, 
-  Search
+  Search,
+  Database,
+  ChevronDown
 } from 'lucide-react';
 
 interface Project {
@@ -24,10 +26,7 @@ interface Project {
     latest_version?: number;
 }
 
-interface Workbook {
-    id: string;
-    name: string;
-}
+interface Workbook { id: string; name: string; }
 
 const RegistryDashboard: React.FC = () => {
     const [workbooks, setWorkbooks] = useState<Workbook[]>([]);
@@ -41,49 +40,51 @@ const RegistryDashboard: React.FC = () => {
     const [message, setMessage] = useState<{ text: string, type: 'info' | 'error' | 'success' } | null>(null);
     const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
+    // Auto-refresh logic while processing
     useEffect(() => {
-        fetchWorkbooks();
-    }, []);
-
-    useEffect(() => {
-        if (selectedWorkbookId) {
-            fetchYears(selectedWorkbookId);
-        } else {
-            setYears([]);
-            setSelectedYear('');
-            setProjects([]);
+        let interval: NodeJS.Timeout;
+        if (isProcessing) {
+            // Poll every 5 seconds while processing
+            interval = setInterval(() => {
+                fetchProjects(selectedYear, selectedWorkbookId);
+            }, 5000);
         }
+        return () => { if (interval) clearInterval(interval); };
+    }, [isProcessing, selectedYear, selectedWorkbookId]);
+
+    // Check if processing is actually finished based on project statuses
+    useEffect(() => {
+        if (isProcessing && projects.length > 0) {
+            const stillProcessing = projects.some(p => p.status.toLowerCase() === 'processing');
+            if (!stillProcessing) {
+                setIsProcessing(false);
+                setMessage({ text: "All selected projects have been processed.", type: 'success' });
+            }
+        }
+    }, [projects]);
+
+    useEffect(() => { fetchWorkbooks(); }, []);
+    useEffect(() => {
+        if (selectedWorkbookId) fetchYears(selectedWorkbookId);
     }, [selectedWorkbookId]);
-
     useEffect(() => {
-        if (selectedYear && selectedWorkbookId) {
-            fetchProjects(selectedYear, selectedWorkbookId);
-        }
+        if (selectedYear && selectedWorkbookId) fetchProjects(selectedYear, selectedWorkbookId);
     }, [selectedYear, selectedWorkbookId]);
 
     const fetchWorkbooks = async () => {
         try {
             const res = await axios.get(`/api/registry/list-sheets`, { withCredentials: true });
             setWorkbooks(res.data);
-            if (res.data.length > 0) {
-                setSelectedWorkbookId(res.data[0].id);
-            }
-        } catch {
-            setMessage({ text: "Failed to load Google Sheets from Drive.", type: 'error' });
-        }
+            if (res.data.length > 0) setSelectedWorkbookId(res.data[0].id);
+        } catch { setMessage({ text: "Failed to load Google Sheets.", type: 'error' }); }
     };
 
     const fetchYears = async (workbookId: string) => {
         try {
             const res = await axios.get(`/api/registry/years?sheet_id=${workbookId}`, { withCredentials: true });
             setYears(res.data);
-            if (res.data.length > 0) setSelectedYear(res.data[0]);
-            else setSelectedYear('');
-        } catch {
-            setMessage({ text: "Failed to load years from the selected sheet.", type: 'error' });
-            setYears([]);
-            setSelectedYear('');
-        }
+            setSelectedYear(res.data.length > 0 ? res.data[0] : '');
+        } catch { setMessage({ text: "Failed to load years.", type: 'error' }); }
     };
 
     const fetchProjects = async (year: string, workbookId: string) => {
@@ -93,11 +94,8 @@ const RegistryDashboard: React.FC = () => {
             setProjects(res.data);
             setSelectedRows([]);
             setValidationResults({});
-        } catch {
-            setMessage({ text: "Failed to load projects from sheet.", type: 'error' });
-        } finally {
-            setLoading(false);
-        }
+        } catch { setMessage({ text: "Failed to load projects.", type: 'error' }); }
+        finally { setLoading(false); }
     };
 
     const handleSelectRow = (rowIndex: number) => {
@@ -109,20 +107,14 @@ const RegistryDashboard: React.FC = () => {
     };
 
     const validateLinks = async () => {
-        const linksToValidate = projects.flatMap(p => [p.srs_link, p.sdd_link]).filter(l => l);
+        const linksToValidate = projects.flatMap(p => [p.srs_link, p.sdd_link, p.spmp_link, p.std_link, p.ri_link]).filter(l => l);
         if (linksToValidate.length === 0) return;
         setLoading(true);
         try {
-            const res = await axios.post(`/api/registry/validate`, { 
-                links: linksToValidate,
-                sheet_id: selectedWorkbookId 
-            }, { withCredentials: true });
+            const res = await axios.post(`/api/registry/validate`, { links: linksToValidate, sheet_id: selectedWorkbookId }, { withCredentials: true });
             setValidationResults(res.data);
-        } catch {
-            setMessage({ text: "Validation failed.", type: 'error' });
-        } finally {
-            setLoading(false);
-        }
+        } catch { setMessage({ text: "Validation failed.", type: 'error' }); }
+        finally { setLoading(false); }
     };
 
     const handleArchive = async () => {
@@ -130,17 +122,11 @@ const RegistryDashboard: React.FC = () => {
         if (selectedProjects.length === 0) return;
         setIsProcessing(true);
         try {
-            await axios.post(`/api/registry/archive`, { 
-                projects: selectedProjects,
-                sheet_id: selectedWorkbookId
-            }, { withCredentials: true });
-            setMessage({ text: "Archival sequence initiated. Tracking progress in Sheets.", type: 'success' });
+            await axios.post(`/api/registry/archive`, { projects: selectedProjects, sheet_id: selectedWorkbookId }, { withCredentials: true });
+            setMessage({ text: "Archival sequence initiated. Track progress in Sheets.", type: 'success' });
             setTimeout(() => fetchProjects(selectedYear, selectedWorkbookId), 3000);
-        } catch {
-            setMessage({ text: "Archival request failed.", type: 'error' });
-        } finally {
-            setIsProcessing(false);
-        }
+        } catch { setMessage({ text: "Archival request failed.", type: 'error' }); }
+        finally { setIsProcessing(false); }
     };
 
     const handleResetStatus = async (project: Project) => {
@@ -149,43 +135,25 @@ const RegistryDashboard: React.FC = () => {
             await axios.post(`/api/registry/reset`, { project }, { withCredentials: true });
             setMessage({ text: "Status reset successfully.", type: 'success' });
             fetchProjects(selectedYear, selectedWorkbookId);
-        } catch {
-            setMessage({ text: "Failed to reset status.", type: 'error' });
-        }
+        } catch { setMessage({ text: "Failed to reset status.", type: 'error' }); }
     };
 
     const getStatusBadge = (project: Project) => {
-        const base = "px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider";
+        const base = "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider";
         const status = project.status.toLowerCase();
         
-        const isNotPending = status !== 'pending';
+        let colorClasses = "bg-gray-100 text-gray-600";
+        if (status === 'pending') colorClasses = "bg-blue-100 text-blue-700";
+        if (status === 'archived') colorClasses = "bg-emerald-100 text-emerald-700";
+        if (status === 'failed') colorClasses = "bg-red-100 text-red-700";
+        if (status === 'duplicate') colorClasses = "bg-amber-100 text-amber-700";
 
         return (
-            <div className="flex items-center gap-4">
-                {status === 'pending' && <span className={`${base} bg-blue-50 text-blue-600`}>Pending</span>}
-                {status === 'archived' && (
-                    <div className="flex items-center gap-2">
-                        <span className={`${base} bg-emerald-50 text-emerald-600`}>Archived</span>
-                        {project.latest_version && project.latest_version > 1 && (
-                            <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded border border-slate-200">
-                                V{project.latest_version}
-                            </span>
-                        )}
-                    </div>
-                )}
-                {status === 'duplicate' && <span className={`${base} bg-amber-50 text-amber-600`}>Duplicate</span>}
-                {status === 'failed' && <span className={`${base} bg-red-50 text-red-600`}>Action Required</span>}
-                {status !== 'pending' && status !== 'archived' && status !== 'duplicate' && status !== 'failed' && (
-                    <span className={`${base} bg-slate-100 text-slate-500`}>{project.status}</span>
-                )}
-
-                {isNotPending && (
-                    <button 
-                        onClick={() => handleResetStatus(project)}
-                        className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
-                        title="Change status back to Pending in Sheets"
-                    >
-                        Reset Status
+            <div className="flex items-center gap-3">
+                <span className={`${base} ${colorClasses}`}>{project.status}</span>
+                {status !== 'pending' && (
+                    <button onClick={() => handleResetStatus(project)} className="text-[10px] font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-tight">
+                        Reset
                     </button>
                 )}
             </div>
@@ -193,225 +161,142 @@ const RegistryDashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col antialiased">
-            {/* Edge-to-edge Toolbar */}
-            <div className="w-full bg-white border-b border-slate-200">
-                <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-6">
-                        <button 
-                            onClick={() => window.location.hash = "dashboard"}
-                            className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium transition-colors"
-                        >
-                            <ArrowLeft className="w-4 h-4" /> <span>Back</span>
+        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+            <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+                <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => window.location.hash = "dashboard"} className="p-2 text-gray-400 hover:text-indigo-600 transition-colors">
+                            <ArrowLeft className="w-5 h-5" />
                         </button>
-                        <div className="h-6 w-[1px] bg-slate-200"></div>
-                        <h1 className="text-lg font-bold text-slate-900">Registry Pipeline</h1>
+                        <div className="h-6 w-px bg-gray-100"></div>
+                        <div className="flex items-center gap-2">
+                            <div className="bg-indigo-600 p-1.5 rounded-lg">
+                                <Database className="w-4 h-4 text-white" />
+                            </div>
+                            <span className="text-lg font-bold text-gray-900 tracking-tight">Registry Pipeline</span>
+                        </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Workbook:</label>
-                        <select 
-                            value={selectedWorkbookId} 
-                            onChange={(e) => setSelectedWorkbookId(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 outline-none font-semibold"
-                        >
-                            {workbooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
-                        </select>
-                        <div className="h-6 w-[1px] bg-slate-200 mx-2"></div>
-                        <label className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Sheet:</label>
-                        <select 
-                            value={selectedYear} 
-                            onChange={(e) => setSelectedYear(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2 outline-none font-semibold"
-                        >
-                            {years.map(y => <option key={y} value={y}>{y}</option>)}
-                        </select>
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Workbook</span>
+                            <div className="relative">
+                                <select 
+                                    value={selectedWorkbookId} 
+                                    onChange={(e) => setSelectedWorkbookId(e.target.value)}
+                                    className="appearance-none bg-gray-50 border border-gray-200 text-gray-900 text-sm font-bold rounded-xl px-4 py-2 pr-10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                                >
+                                    {workbooks.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sheet</span>
+                            <div className="relative">
+                                <select 
+                                    value={selectedYear} 
+                                    onChange={(e) => setSelectedYear(e.target.value)}
+                                    className="appearance-none bg-gray-50 border border-gray-200 text-gray-900 text-sm font-bold rounded-xl px-4 py-2 pr-10 focus:ring-2 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                                >
+                                    {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                </select>
+                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* Content Area */}
-            <main className="flex-1 w-full max-w-[1400px] mx-auto p-6 space-y-6">
-                
-                {/* Status Messages */}
+            <main className="max-w-[1600px] mx-auto w-full p-6 space-y-6">
                 {message && (
-                    <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                    <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-sm animate-in fade-in slide-in-from-top-2 ${
                         message.type === 'error' ? 'bg-red-50 border-red-100 text-red-700' : 
                         message.type === 'success' ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 
-                        'bg-blue-50 border-blue-100 text-blue-700'
+                        'bg-indigo-50 border-indigo-100 text-indigo-700'
                     }`}>
                         <div className="flex items-center gap-3">
                             {message.type === 'error' ? <AlertCircle className="w-5 h-5" /> : <CheckCircle className="w-5 h-5" />}
-                            <span className="text-sm font-medium">{message.text}</span>
+                            <span className="text-sm font-bold">{message.text}</span>
                         </div>
-                        <button onClick={() => setMessage(null)} className="text-xs font-bold uppercase opacity-50 hover:opacity-100">Dismiss</button>
+                        <button onClick={() => setMessage(null)} className="text-[10px] font-black uppercase tracking-widest opacity-50 hover:opacity-100">Dismiss</button>
                     </div>
                 )}
 
-                {/* Table Controls */}
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
                         <button 
                             onClick={validateLinks} 
                             disabled={loading || projects.length === 0}
-                            className="px-4 py-2 bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-lg hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
+                            className="px-6 py-3 bg-white border border-gray-200 text-indigo-600 text-sm font-bold rounded-2xl hover:bg-indigo-50 transition-all flex items-center gap-2 shadow-sm disabled:opacity-50"
                         >
                             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /> Validate Links
                         </button>
                         <button 
                             onClick={handleArchive} 
                             disabled={isProcessing || selectedRows.length === 0}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-100 disabled:opacity-50"
+                            className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-2xl hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-100 disabled:opacity-50"
                         >
                             <Download className="w-4 h-4" /> Archive Selected ({selectedRows.length})
                         </button>
                     </div>
-                    
-                    <button 
-                        onClick={() => fetchProjects(selectedYear, selectedWorkbookId)}
-                        className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                        title="Refresh List"
-                    >
+                    <button onClick={() => fetchProjects(selectedYear, selectedWorkbookId)} className="p-3 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl transition-all">
                         <RefreshCw className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Modern Table Card */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/20 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-slate-50 border-b border-slate-200">
-                                    <th className="px-6 py-4 w-12">
-                                        <div className="flex items-center justify-center">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={selectedRows.length === projects.length && projects.length > 0} 
-                                                onChange={handleSelectAll}
-                                                className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                                            />
-                                        </div>
+                                <tr className="bg-gray-50/50 border-b border-gray-100">
+                                    <th className="px-6 py-4 w-12 text-center">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={selectedRows.length === projects.length && projects.length > 0} 
+                                            onChange={handleSelectAll}
+                                            className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                        />
                                     </th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Project ID</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Project Title</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SRS</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SDD</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">SPMP</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">STD</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">RI</th>
-                                    <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                                    {['Project ID', 'Title', 'SRS', 'SDD', 'SPMP', 'STD', 'RI', 'Status'].map(h => (
+                                        <th key={h} className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">{h}</th>
+                                    ))}
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100">
+                            <tbody className="divide-y divide-gray-50">
                                 {loading && projects.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-20 text-center">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <RefreshCw className="w-8 h-8 text-blue-200 animate-spin" />
-                                                <p className="text-slate-400 text-sm font-medium">Reading Registry Data...</p>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan={9} className="px-6 py-20 text-center text-gray-400 font-bold">Reading Registry...</td></tr>
                                 ) : projects.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-20 text-center">
-                                            <div className="flex flex-col items-center gap-3">
-                                                <Search className="w-8 h-8 text-slate-200" />
-                                                <p className="text-slate-400 text-sm font-medium">No projects found in this sheet.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    <tr><td colSpan={9} className="px-6 py-20 text-center text-gray-400 font-bold">No projects found.</td></tr>
                                 ) : projects.map((p) => (
-                                    <tr key={p.row_index} className={`hover:bg-slate-50/50 transition-colors group ${selectedRows.includes(p.row_index) ? 'bg-blue-50/30' : ''}`}>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-center">
-                                                <input 
-                                                    type="checkbox" 
-                                                    checked={selectedRows.includes(p.row_index)} 
-                                                    onChange={() => handleSelectRow(p.row_index)}
-                                                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
-                                                />
-                                            </div>
+                                    <tr key={p.row_index} className={`hover:bg-gray-50/50 transition-colors group ${selectedRows.includes(p.row_index) ? 'bg-indigo-50/30' : ''}`}>
+                                        <td className="px-6 py-4 text-center">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={selectedRows.includes(p.row_index)} 
+                                                onChange={() => handleSelectRow(p.row_index)}
+                                                className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                            />
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-mono text-slate-500 uppercase tracking-tighter">
-                                            {p.project_id || "N/A"}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="text-sm font-bold text-slate-800 line-clamp-1">{p.project_title}</p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {p.srs_link ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <a href={p.srs_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
-                                                        <ExternalLink className="w-3 h-3" /> View Source
-                                                    </a>
-                                                    {validationResults[p.srs_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.srs_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.srs_link]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {p.sdd_link ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <a href={p.sdd_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
-                                                        <ExternalLink className="w-3 h-3" /> View Source
-                                                    </a>
-                                                    {validationResults[p.sdd_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.sdd_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.sdd_link]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {p.spmp_link ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <a href={p.spmp_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
-                                                        <ExternalLink className="w-3 h-3" /> View Source
-                                                    </a>
-                                                    {validationResults[p.spmp_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.spmp_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.spmp_link]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {p.std_link ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <a href={p.std_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
-                                                        <ExternalLink className="w-3 h-3" /> View Source
-                                                    </a>
-                                                    {validationResults[p.std_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.std_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.std_link]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {p.ri_link ? (
-                                                <div className="flex flex-col gap-1">
-                                                    <a href={p.ri_link} target="_blank" rel="noreferrer" className="text-blue-600 hover:text-blue-800 text-xs font-bold flex items-center gap-1.5 transition-colors">
-                                                        <ExternalLink className="w-3 h-3" /> View Source
-                                                    </a>
-                                                    {validationResults[p.ri_link] && (
-                                                        <span className={`text-[10px] font-medium ${validationResults[p.ri_link] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
-                                                            {validationResults[p.ri_link]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            ) : <span className="text-slate-300 text-[10px] font-bold">MISSING</span>}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {getStatusBadge(p)}
-                                        </td>
+                                        <td className="px-6 py-4 text-sm font-mono text-gray-500">{p.project_id || "N/A"}</td>
+                                        <td className="px-6 py-4 text-sm font-bold text-gray-900">{p.project_title}</td>
+                                        {['srs', 'sdd', 'spmp', 'std', 'ri'].map(doc => (
+                                            <td key={doc} className="px-6 py-4">
+                                                {p[`${doc}_link` as keyof Project] ? (
+                                                    <div className="space-y-1">
+                                                        <a href={p[`${doc}_link` as keyof Project] as string} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-800 text-xs font-bold flex items-center gap-1">
+                                                            <ExternalLink className="w-3 h-3" /> View
+                                                        </a>
+                                                        {validationResults[p[`${doc}_link` as keyof Project] as string] && (
+                                                            <span className={`text-[9px] font-bold uppercase ${validationResults[p[`${doc}_link` as keyof Project] as string] === 'Accessible' ? 'text-emerald-500' : 'text-red-500'}`}>
+                                                                {validationResults[p[`${doc}_link` as keyof Project] as string]}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : <span className="text-gray-300 text-[10px] font-bold">MISSING</span>}
+                                            </td>
+                                        ))}
+                                        <td className="px-6 py-4">{getStatusBadge(p)}</td>
                                     </tr>
                                 ))}
                             </tbody>

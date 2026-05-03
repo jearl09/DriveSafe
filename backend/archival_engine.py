@@ -182,6 +182,16 @@ class ArchivalEngine:
             logger.error(f"Download/Conversion Error for {file_id}: {e}")
             raise e
 
+    def _get_file_metadata(self, file_id):
+        try:
+            return self.service.files().get(
+                fileId=file_id, 
+                fields='mimeType, name, modifiedTime, md5Checksum'
+            ).execute()
+        except Exception as e:
+            logger.error(f"Failed to fetch metadata for {file_id}: {e}")
+            return None
+
     def archive_project(self, project_data, workbook_name="Archives"):
         project_id = project_data.get('project_id')
         project_title = project_data.get('project_title', 'Untitled').replace(' ', '_').replace('/', '_')
@@ -209,7 +219,37 @@ class ArchivalEngine:
             
             if file_id:
                 try:
-                    # Download and convert to PDF
+                    # --- METADATA OPTIMIZATION ---
+                    metadata = self._get_file_metadata(file_id)
+                    if not metadata:
+                        raise Exception("Could not reach Google Drive for metadata.")
+
+                    changed = True
+                    # If we have a previous record, check if the file was modified since then
+                    if last_record and last_record.archived_at:
+                        # Parse Google's RFC3339 timestamp (e.g., 2023-10-12T10:00:00.000Z)
+                        raw_mod_time = metadata.get('modifiedTime')
+                        # Simple slice to handle Z and milliseconds for datetime.fromisoformat
+                        mod_time_str = raw_mod_time.replace('Z', '+00:00')
+                        mod_time = datetime.datetime.fromisoformat(mod_time_str)
+                        
+                        # Compare modified time (UTC) with our archived_at time (UTC)
+                        # We add a small 2-second buffer to account for archival processing time
+                        if mod_time <= last_record.archived_at.replace(tzinfo=datetime.timezone.utc):
+                            logger.info(f"Metadata Match: {doc_type.upper()} hasn't changed since {last_record.archived_at}. Skipping.")
+                            changed = False
+
+                    if not changed:
+                        # Re-use previous data but set BIN and TEXT to None for the new DB row (DEDUPLICATION)
+                        results[doc_type]['path'] = getattr(last_record, f"{doc_type}_local_path")
+                        results[doc_type]['hash'] = getattr(last_record, f"{doc_type}_hash")
+                        results[doc_type]['text'] = None
+                        results[doc_type]['bin'] = None
+                        continue
+
+                    # --- END METADATA OPTIMIZATION ---
+
+                    # Proceed with download if changed
                     doc_dir = os.path.join(base_project_dir, doc_type.upper())
                     os.makedirs(doc_dir, exist_ok=True)
                     
@@ -280,15 +320,18 @@ class ArchivalEngine:
 
                         # BINARY STORAGE OPTIMIZATION: 
                         # Only store in DB if file is < 16MB to avoid MySQL "Server Gone Away" errors.
-                        # Files are already saved on disk, so this is safe.
                         if len(file_binary) > 16 * 1024 * 1024:
                             logger.warning(f"File {doc_type.upper()} is too large ({len(file_binary)} bytes) for DB. Saving path only.")
                             results[doc_type]['bin'] = None
                         else:
                             results[doc_type]['bin'] = file_binary
                     else:
-                        # No change detected: use the path from the last record
+                        # DEDUPLICATION OPTIMIZATION:
+                        # If file is identical, set bin and text to None in the new row.
+                        # This saves space while the download route handles looking back to previous versions.
                         results[doc_type]['path'] = getattr(last_record, f"{doc_type}_local_path")
+                        results[doc_type]['bin'] = None
+                        results[doc_type]['text'] = None
                         os.remove(actual_temp_path) # Delete temp as we don't need a new file
                         
                 except Exception as e:

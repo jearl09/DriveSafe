@@ -1,68 +1,66 @@
-// FeaturesPage.tsx
-// Features page for DriveSafe
-
 import { useState, useEffect } from "react";
-import "./FeaturesPage.css";
+import { 
+  Database, Shield, Zap, Clock, CheckCircle2, 
+  ArrowLeft, ChevronRight, X, LayoutDashboard
+} from "lucide-react";
 
 interface Feature {
   id: number;
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   description: string;
   list: string[];
   details: string;
 }
 
-// Data structure for features to make mapping easier
 const featuresData: Feature[] = [
   {
     id: 1,
-    icon: "🔒",
+    icon: <Shield className="w-6 h-6" />,
     title: "Secure Authentication",
     description: "OAuth 2.0 protected login ensures your Google account credentials are never stored on our servers.",
     list: ["Zero password storage", "Encrypted connections", "RA 10173 compliant"],
     details: "We utilize the official Google Identity Services SDK to handle the OAuth 2.0 Authorization Code Flow. This means your password never touches our backend. We only receive a temporary access token which is encrypted using AES-256 before being stored in a secure HTTP-only cookie."
   },
   {
-    // NEW FEATURE: The "Star" of your show!
     id: 2,
-    icon: "🧠", // Brain icon for AI
+    icon: <Database className="w-6 h-6" />,
     title: "AI-Powered Organization",
     description: "Our Machine Learning engine automatically analyzes and sorts your files into smart categories.",
     list: ["Auto-categorization", "Separates School vs. Personal", "Smart tagging system"],
-    details: "This is the core intelligence of DriveSafe. Using Python's 'scikit-learn' library, our backend analyzes file metadata (extensions, naming patterns, and sizes). It runs a classification algorithm to tag files as 'Academic', 'Multimedia', or 'Personal' before zipping them, ensuring your backup is organized, not just a messy dump."
+    details: "This is the core intelligence of DriveSafe. Using Python's 'scikit-learn' library, our backend analyzes file metadata (extensions, naming patterns, and sizes). It runs a classification algorithm to tag files as 'Academic', 'Multimedia', or 'Personal' before zipping them."
   },
   {
     id: 3,
-    icon: "⚡",
+    icon: <Zap className="w-6 h-6" />,
     title: "One-Click Backup",
     description: "Start a complete backup with a single click. Our system automatically fetches, compresses, and secures files.",
     list: ["Automated file fetching", "Smart ZIP compression", "Process in under 2 minutes"],
-    details: "Our Python backend uses the Google Drive API v3 to recursively walk through your folders. It streams file data directly into a ZIP archive using the 'zipfile' library, meaning we don't need to save temporary files to our disk, greatly increasing speed and security."
+    details: "Our Python backend uses the Google Drive API v3 to recursively walk through your folders. It streams file data directly into a ZIP archive using the 'zipfile' library, meaning we don't need to save temporary files to our disk."
   },
   {
     id: 4,
-    icon: "✅",
+    icon: <CheckCircle2 className="w-6 h-6" />,
     title: "Data Integrity",
     description: "Every backup includes MD5 checksum verification to ensure your files are perfectly preserved.",
     list: ["MD5 checksum generation", "Integrity verification", "Corruption detection"],
-    details: "After creating the ZIP archive, we calculate its MD5 hash and compare it against the checksums provided by Google Drive's metadata. If even a single bit is different, the system flags the backup as 'Corrupted' and automatically retries the download."
+    details: "After creating the ZIP archive, we calculate its MD5 hash and compare it against the checksums provided by Google Drive's metadata. If even a single bit is different, the system flags the backup as 'Corrupted'."
   },
   {
     id: 5,
-    icon: "🕒",
+    icon: <Clock className="w-6 h-6" />,
     title: "Backup History",
     description: "Access and manage your last 5 backups. View detailed metadata including file count and size.",
     list: ["Last 5 backups tracked", "Detailed metadata display", "Easy download access"],
-    details: "We use a lightweight SQLite database to track your backup history. Each entry stores the timestamp, file size, file count, and expiration date. This allows the frontend to render your history instantly without needing to scan the storage system every time."
+    details: "We use a lightweight SQLite database to track your backup history. Each entry stores the timestamp, file size, file count, and expiration date."
   },
   {
     id: 6,
-    icon: "📦",
+    icon: <LayoutDashboard className="w-6 h-6" />,
     title: "Smart Archiving",
     description: "Archives are stored securely for 7 days, giving you time to download while managing storage.",
     list: ["7-day secure storage", "Auto-deletion policy", "Expiration tracking"],
-    details: "A scheduled 'Cron Job' runs on our server every midnight. It checks the creation date of all ZIP files. Any file older than 7 days is securely wiped using a secure delete standard to ensure compliance with data minimization principles."
+    details: "A scheduled 'Cron Job' runs on our server every midnight. It checks the creation date of all ZIP files. Any file older than 7 days is securely wiped using a secure delete standard."
   }
 ];
 
@@ -70,192 +68,113 @@ const FeaturesPage = () => {
   const [selectedFeature, setSelectedFeature] = useState<Feature | null>(null);
 
   useEffect(() => {
-    if (selectedFeature) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-
-    // Cleanup function to ensure overflow is reset if component unmounts
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    document.body.style.overflow = selectedFeature ? 'hidden' : 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
   }, [selectedFeature]);
 
-  const openModal = (feature: Feature) => {
-    setSelectedFeature(feature);
-  };
-
-  const closeModal = () => {
-    setSelectedFeature(null);
-  };
-
   return (
-    <div className="drivesafe-features-page">
-      {/* Header Section */}
-      <header className="header">
-        <div className="container">
-          <div className="logo-container">
-            <div className="logo-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="3" width="18" height="18" rx="2" fill="#2563eb"/>
-                <rect x="7" y="7" width="10" height="10" rx="1" fill="white"/>
-                <rect x="9" y="9" width="6" height="6" rx="0.5" fill="#2563eb"/>
-              </svg>
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 p-2 rounded-lg">
+              <Database className="w-5 h-5 text-white" />
             </div>
-            <div className="logo">DriveSafe</div>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">DriveSafe</span>
           </div>
-          <nav className="nav">
-            <a href="#">Home</a>
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
-            <a href="#signin">Sign In</a>
-            <button className="btn btn-primary btn-header">Get Started</button>
-          </nav>
-        </div>
-      </header>
-
-      {/* Features Hero Section */}
-      <section className="features-hero">
-        <div className="container">
-          <h1 className="features-title">Powerful Features</h1>
-          <p className="features-subtitle">Everything You Need for Safe Backups</p>
-          <p className="features-description">
-            DriveSafe provides enterprise-grade features designed specifically for students and educators.
-            <br />
-            <span style={{ fontSize: '0.9em', color: '#2563eb', fontWeight: 600 }}>
-              (Click on any feature card to learn how it works)
-            </span>
-          </p>
-        </div>
-      </section>
-
-      {/* Features Grid with Performance Stats */}
-      <section className="features-grid-section">
-        <div className="container">
-          <div className="features-grid">
-            {featuresData.map((feature) => (
-              <div 
-                key={feature.id} 
-                className="feature-card interactive-card" 
-                onClick={() => openModal(feature)}
-              >
-                <div className="feature-icon">{feature.icon}</div>
-                <h3 className="feature-title">{feature.title}</h3>
-                <p className="feature-description">
-                  {feature.description}
-                </p>
-                <ul className="feature-list">
-                  {feature.list.map((item, index) => (
-                    <li key={index}>{item}</li>
-                  ))}
-                </ul>
-                <div className="click-indicator">
-                  <span>Learn more</span>
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M6 12L10 8L6 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Performance Section */}
-      <section className="performance-section">
-        <div className="container">
-          <div className="performance-header">
-            <h2 className="performance-title">Built for Performance</h2>
-            <p className="performance-description">Our system is optimized for speed and reliability</p>
-          </div>
-          <div className="performance-stats-grid">
-            <div className="performance-stat-card">
-              <div className="stat-value">95%</div>
-              <div className="stat-label">Success Rate</div>
-            </div>
-            <div className="performance-stat-card">
-              <div className="stat-value">&lt; 2 min</div>
-              <div className="stat-label">Backup Time</div>
-            </div>
-            <div className="performance-stat-card">
-              <div className="stat-value">100 files</div>
-              <div className="stat-label">Per Backup</div>
-            </div>
-            <div className="performance-stat-card">
-              <div className="stat-value">100%</div>
-              <div className="stat-label">Encrypted</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-column">
-              <h3>DriveSafe</h3>
-              <p>Protecting your academic files with automated backups.</p>
-            </div>
-            <div className="footer-column">
-              <h4>Product</h4>
-              <a href="#">Home</a>
-              <a href="#">Features</a>
-              <a href="#about">About</a>
-              <a href="#signin">Sign In</a>
-            </div>
-            <div className="footer-column">
-              <h4>Resources</h4>
-              <a href="#">Documentation</a>
-              <a href="#">Support</a>
-            </div>
-            <div className="footer-column">
-              <h4>Legal</h4>
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <p>&copy; 2023 DriveSafe. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      {/* Interactive Feature Modal */}
-      {selectedFeature && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="feature-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close-btn" onClick={closeModal}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M18 6L6 18M6 6L18 18" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+            <a href="#" className="hover:text-indigo-600 transition-colors">Home</a>
+            <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
+            <a href="#about" className="hover:text-indigo-600 transition-colors">About</a>
+            <button 
+              onClick={() => window.location.hash = "signin"}
+              className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-all shadow-sm"
+            >
+              Get Started
             </button>
-            
-            <div className="modal-header">
-              <div className="modal-icon">{selectedFeature.icon}</div>
-              <h2 className="modal-title">{selectedFeature.title}</h2>
-            </div>
-            
-            <div className="modal-body">
-              <h4 className="modal-section-title">Overview</h4>
-              <p className="modal-text">{selectedFeature.description}</p>
-              
-              <h4 className="modal-section-title">Technical How-It-Works</h4>
-              <div className="technical-box">
-                <p>{selectedFeature.details}</p>
-              </div>
-              
-              <h4 className="modal-section-title">Key Capabilities</h4>
-              <ul className="modal-list">
-                {selectedFeature.list.map((item: string, index: number) => (
-                  <li key={index}>{item}</li>
-                ))}
-              </ul>
-            </div>
           </div>
         </div>
+      </nav>
+
+      <main className="flex-1 max-w-7xl mx-auto w-full p-6 md:p-10 space-y-16">
+        <div className="text-center space-y-4 pt-10">
+            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Powerful Features</h1>
+            <p className="text-xl text-gray-500 font-medium">Everything you need for institutional archival integrity</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuresData.map((f) => (
+                <div 
+                    key={f.id} 
+                    onClick={() => setSelectedFeature(f)}
+                    className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-indigo-100 transition-all cursor-pointer group"
+                >
+                    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 mb-6 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                        {f.icon}
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-3">{f.title}</h3>
+                    <p className="text-gray-500 text-sm leading-relaxed mb-6">{f.description}</p>
+                    <ul className="space-y-2 mb-6">
+                        {f.list.map((item, i) => (
+                            <li key={i} className="flex items-center gap-2 text-xs font-bold text-gray-400">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="flex items-center gap-2 text-indigo-600 text-xs font-black uppercase tracking-widest">
+                        Learn more <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                </div>
+            ))}
+        </div>
+      </main>
+
+      {selectedFeature && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setSelectedFeature(null)}>
+              <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                  <div className="p-8 md:p-12 space-y-8">
+                      <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-4">
+                              <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                                  {selectedFeature.icon}
+                              </div>
+                              <div>
+                                  <h2 className="text-2xl font-black text-gray-900 tracking-tight">{selectedFeature.title}</h2>
+                                  <p className="text-indigo-600 font-bold text-xs uppercase tracking-widest">Technical Deep Dive</p>
+                              </div>
+                          </div>
+                          <button onClick={() => setSelectedFeature(null)} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-all">
+                              <X className="w-6 h-6" />
+                          </button>
+                      </div>
+
+                      <div className="space-y-6">
+                          <div className="space-y-2">
+                              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</h4>
+                              <p className="text-gray-600 leading-relaxed font-medium">{selectedFeature.description}</p>
+                          </div>
+                          <div className="space-y-2">
+                              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Mechanism</h4>
+                              <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 text-sm text-gray-600 leading-relaxed font-medium italic">
+                                  "{selectedFeature.details}"
+                              </div>
+                          </div>
+                      </div>
+
+                      <button 
+                        onClick={() => setSelectedFeature(null)}
+                        className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold uppercase tracking-widest shadow-lg shadow-indigo-100 transition-all"
+                      >
+                        Close Details
+                      </button>
+                  </div>
+              </div>
+          </div>
       )}
+
+      <footer className="p-10 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest border-t border-gray-100 bg-white">
+        &copy; 2026 DriveSafe Features &bull; Optimized for Excellence
+      </footer>
     </div>
   );
 };

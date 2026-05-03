@@ -216,20 +216,34 @@ def download_from_db(ledger_id, doc_type):
     from models import ArchivalLedger
     from flask import send_file
     import io
-    import mimetypes
 
     record = ArchivalLedger.query.get_or_404(ledger_id)
     preview = request.args.get('preview') == '1'
     
-    binary_data = None
     path_field = f"{doc_type}_local_path"
     binary_field = f"{doc_type}_binary"
+    hash_field = f"{doc_type}_hash"
     
     binary_data = getattr(record, binary_field, None)
     file_path = getattr(record, path_field, '')
+    target_hash = getattr(record, hash_field, None)
     
+    # DEDUPLICATION LOGIC: 
+    # If this version has no binary data (to save space), look back for a 
+    # record of the SAME project that DOES have the binary data for this hash.
+    if not binary_data and target_hash:
+        source_record = ArchivalLedger.query.filter(
+            ArchivalLedger.project_id == record.project_id,
+            getattr(ArchivalLedger, hash_field) == target_hash,
+            getattr(ArchivalLedger, binary_field).isnot(None)
+        ).order_by(ArchivalLedger.id.asc()).first()
+        
+        if source_record:
+            binary_data = getattr(source_record, binary_field)
+            logger.info(f"Deduplication: Serving {doc_type.upper()} for {record.project_title} v{record.version} from v{source_record.version} storage.")
+
     if not binary_data:
-        return jsonify({"error": f"{doc_type.upper()} file not found in database"}), 404
+        return jsonify({"error": f"{doc_type.upper()} file not found in database or history"}), 404
 
     # Get extension from the saved path
     ext = os.path.splitext(file_path)[1] if file_path else ".pdf"
@@ -238,16 +252,14 @@ def download_from_db(ledger_id, doc_type):
     clean_title = record.project_title.replace(' ', '_').replace('/', '_')
     filename = f"{clean_title}_{doc_type.upper()}_v{record.version}{ext}"
 
-    # Ensure extension is .pdf for the browser to recognize it
-    filename = f"{clean_title}_{doc_type.upper()}_v{record.version}.pdf"
-
+    # For previews, force .pdf extension
     if preview:
         return send_file(
             io.BytesIO(binary_data),
             mimetype='application/pdf',
             as_attachment=False,
             download_name=filename,
-            max_age=0 # Prevent browser caching old headers
+            max_age=0
         )
 
     return send_file(
@@ -284,6 +296,91 @@ def reset_project_status():
         return jsonify({"message": "Project status reset to Pending successfully."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@registry_bp.route('/api/registry/ledger/grouped', methods=['GET'])
+@login_required
+def get_grouped_ledger():
+    if current_user.role != 'teacher':
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    from models import ArchivalLedger
+    from sqlalchemy.orm import defer
+    from collections import defaultdict
+
+    academic_year = request.args.get('year')
+    query = ArchivalLedger.query.options(
+        defer(ArchivalLedger.srs_binary), 
+        defer(ArchivalLedger.sdd_binary),
+        defer(ArchivalLedger.spmp_binary),
+        defer(ArchivalLedger.std_binary),
+        defer(ArchivalLedger.ri_binary)
+    )
+
+    if academic_year:
+        query = query.filter_by(academic_year=academic_year)
+    
+    # Process history chronologically (ASC) to calculate versions correctly
+    records = query.order_by(ArchivalLedger.id.asc()).all()
+    
+    # Track state for per-document versions
+    # last_hashes[project_key][doc_type] = hash
+    last_hashes = defaultdict(lambda: defaultdict(lambda: None))
+    # doc_versions[project_key][doc_type] = version_count
+    doc_versions = defaultdict(lambda: defaultdict(int))
+
+    grouped_data = {}
+
+    for r in records:
+        project_key = f"{r.project_id}_{r.project_title}"
+        
+        if project_key not in grouped_data:
+            grouped_data[project_key] = {
+                "project_id": r.project_id,
+                "project_title": r.project_title,
+                "academic_year": r.academic_year,
+                "documents": {
+                    "srs": [], "sdd": [], "spmp": [], "std": [], "ri": []
+                }
+            }
+        
+        target = grouped_data[project_key]
+        
+        for doc_type in ["srs", "sdd", "spmp", "std", "ri"]:
+            path = getattr(r, f"{doc_type}_local_path")
+            current_hash = getattr(r, f"{doc_type}_hash")
+            
+            if path and current_hash:
+                # If the hash is different from the previous archival run, it's a new version
+                if current_hash != last_hashes[project_key][doc_type]:
+                    last_hashes[project_key][doc_type] = current_hash
+                    doc_versions[project_key][doc_type] += 1
+                    
+                    target["documents"][doc_type].append({
+                        "id": r.id,
+                        "version": doc_versions[project_key][doc_type], # CORRECT: Per-doc version
+                        "hash": current_hash,
+                        "timestamp": r.archived_at.strftime("%Y-%m-%d %H:%M:%S") if r.archived_at else None,
+                        "status": r.status
+                    })
+
+    # Reverse to show newest first for the UI
+    result = list(grouped_data.values())
+    for project in result:
+        for doc_type in project["documents"]:
+            project["documents"][doc_type].reverse()
+
+    return jsonify(result)
+
+@registry_bp.route('/api/registry/ledger/tabs', methods=['GET'])
+@login_required
+def get_ledger_tabs():
+    if current_user.role != 'teacher':
+        return jsonify({"error": "Unauthorized"}), 403
+    
+    from models import ArchivalLedger
+    # Get distinct academic years from the database
+    years = db.session.query(ArchivalLedger.academic_year).distinct().all()
+    return jsonify([y[0] for y in years if y[0]])
 
 @registry_bp.route('/api/registry/ledger', methods=['GET'])
 @login_required

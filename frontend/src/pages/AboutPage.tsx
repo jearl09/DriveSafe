@@ -1,227 +1,143 @@
-// AboutPage.tsx
-// About page for DriveSafe
-
-import "../App.css";
+import { Database, ShieldCheck, Target, Users, Landmark, CheckCircle2, ArrowLeft } from "lucide-react";
 
 const AboutPage = () => {
   return (
-    <div className="drivesafe-about-page">
-      {/* Header Section */}
-      <header className="header">
-        <div className="container">
-          <div className="logo-container">
-            <div className="logo-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="3" y="3" width="18" height="18" rx="2" fill="#2563eb"/>
-                <rect x="7" y="7" width="10" height="10" rx="1" fill="white"/>
-                <rect x="9" y="9" width="6" height="6" rx="0.5" fill="#2563eb"/>
-              </svg>
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+      <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-indigo-600 p-2 rounded-lg">
+              <Database className="w-5 h-5 text-white" />
             </div>
-            <div className="logo">DriveSafe</div>
+            <span className="text-xl font-bold text-gray-900 tracking-tight">DriveSafe</span>
           </div>
-          <nav className="nav">
-            <a href="#">Home</a>
-            <a href="#features">Features</a>
-            <a href="#about">About</a>
-            <a href="#signin">Sign In</a>
-            <button className="btn btn-primary btn-header">Get Started</button>
-          </nav>
+          <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
+            <a href="#" className="hover:text-indigo-600 transition-colors">Home</a>
+            <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
+            <a href="#about" className="hover:text-indigo-600 transition-colors">About</a>
+            <button 
+              onClick={() => window.location.hash = "signin"}
+              className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-all shadow-sm"
+            >
+              Get Started
+            </button>
+          </div>
         </div>
-      </header>
+      </nav>
 
-      {/* About Content */}
-      <section className="about-hero">
-        <div className="container">
-          <div className="about-nav-link">
-            <a href="#about">About the Project</a>
-          </div>
-          <h1 className="about-title">Academic Excellence in Software Development</h1>
-          
-          <div className="about-section">
-            <p className="about-description">
-              DriveSafe is a capstone project developed by Information Technology students of Cebu Institute of Technology University
+      <main className="flex-1 max-w-7xl mx-auto w-full p-6 md:p-10 space-y-16">
+        <div className="text-center space-y-4 pt-10">
+            <div className="inline-flex items-center gap-2 bg-indigo-50 px-4 py-1.5 rounded-full text-indigo-700 text-xs font-black uppercase tracking-widest">
+                Academic Project
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-gray-900 tracking-tight">Excellence in Software Development</h1>
+            <p className="text-xl text-gray-500 font-medium max-w-2xl mx-auto">
+                DriveSafe is a capstone initiative by IT students of Cebu Institute of Technology University.
             </p>
-          </div>
-
-          <div className="about-content">
-            {/* Two-Column Layout for Objectives and Problem Statement */}
-            <div className="about-two-column">
-              <div className="about-card">
-                <div className="about-card-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="#2563eb"/>
-                    <path d="M12 6V12L16 14" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                  </svg>
-                </div>
-                <h2 className="about-card-title">Project Objectives</h2>
-                <p className="about-card-description">
-                  DriveSafe addresses the critical need for automated backup solutions for students and educators who risk losing access to important academic files stored in school-issued Google accounts.
-                </p>
-                
-                <div className="objectives-list">
-                  <div className="objective-item">
-                    <span className="objective-checkmark">✓</span>
-                    <div className="objective-content">
-                      <h3 className="objective-title">Prevent Data Loss</h3>
-                      <p className="objective-description">Protect academic files from account deactivation.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="objective-item">
-                    <span className="objective-checkmark">✓</span>
-                    <div className="objective-content">
-                      <h3 className="objective-title">Simplify Backups</h3>
-                      <p className="objective-description">One-click solution vs manual/multi-step processes.</p>
-                    </div>
-                  </div>
-                  
-                  <div className="objective-item">
-                    <span className="objective-checkmark">✓</span>
-                    <div className="objective-content">
-                      <h3 className="objective-title">Ensure Compliance</h3>
-                      <p className="objective-description">Full adherence to RA 10173 Data Privacy Act.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="about-card">
-                <div className="about-card-icon">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" fill="#2563eb"/>
-                    <path d="M12 8V12M12 16H12.01" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                    <circle cx="12" cy="12" r="1" fill="white"/>
-                  </svg>
-                </div>
-                <h2 className="about-card-title">Problem Statement</h2>
-                <p className="about-card-description">
-                  Students and educators accumulate critical files on Google Drive, but face potential data loss upon graduation or account deactivation. Existing solutions like Google Takeout are manual and infrequently used.
-                </p>
-                
-                <div className="challenge-box challenge-box-blue">
-                  <h3 className="challenge-title">The Challenge</h3>
-                  <p className="challenge-description">
-                    How can we provide a smart, reliable, automated backup solution that prevents data loss while maintaining security and privacy compliance?
-                  </p>
-                </div>
-                
-                <div className="challenge-box challenge-box-green">
-                  <h3 className="challenge-title">Our SOLUTION</h3>
-                  <p className="challenge-description">
-                    DriveSafe automates the entire backup process with enterprise-grade security, requiring just one click to protect your valuable academic files.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Development Team Section */}
-            <div className="about-card team-card">
-              <div className="about-card-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="12" cy="12" r="10" fill="#2563eb"/>
-                  <path d="M12 8C13.1 8 14 8.9 14 10C14 11.1 13.1 12 12 12C10.9 12 10 11.1 10 10C10 8.9 10.9 8 12 8ZM12 14C14.67 14 18 15.33 18 17V18H6V17C6 15.33 9.33 14 12 14Z" fill="white"/>
-                </svg>
-              </div>
-              <h2 className="about-card-title">Development Team</h2>
-              <p className="team-subtitle">Information Technology Students • Class of 2025</p>
-              
-              <div className="team-members-grid">
-                <div className="team-member-card">
-                  <div className="member-initial">L</div>
-                  <h3 className="member-name">Lyrech James E. Laspiñas</h3>
-                  <p className="member-role">Developer</p>
-                </div>
-                
-                <div className="team-member-card">
-                  <div className="member-initial">L</div>
-                  <h3 className="member-name">Louis Drey F. Castañeto</h3>
-                  <p className="member-role">Developer</p>
-                </div>
-                
-                <div className="team-member-card">
-                  <div className="member-initial">J</div>
-                  <h3 className="member-name">John Earl F. Mandawe</h3>
-                  <p className="member-role">Developer</p>
-                </div>
-                
-                <div className="team-member-card">
-                  <div className="member-initial">C</div>
-                  <h3 className="member-name">Clyde Nixon Jumawan</h3>
-                  <p className="member-role">Developer</p>
-                </div>
-                
-                <div className="team-member-card">
-                  <div className="member-initial">M</div>
-                  <h3 className="member-name">Mark Joenylle B. Cortes</h3>
-                  <p className="member-role">Developer</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Institutional Information Block */}
-            <div className="institution-block">
-              <div className="institution-icon">
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M24 4L6 10V22C6 30.5 12.5 38.5 24 42C35.5 38.5 42 30.5 42 22V10L24 4Z" fill="white" stroke="white" strokeWidth="2"/>
-                </svg>
-              </div>
-              <h2 className="institution-name">CEBU INSTITUTE OF TECHNOLOGY UNIVERSITY</h2>
-              <p className="institution-college">College of Computer Studies</p>
-              <p className="institution-motto">
-                Committed to excellence in technology education, CIT-U empowers students to create innovative solutions that address real-world problems through comprehensive computer science programs.
-              </p>
-              
-              <div className="project-details-grid">
-                <div className="project-detail-item">
-                  <h3 className="project-detail-label">Project Release</h3>
-                  <p className="project-detail-value">1.0 (2025)</p>
-                </div>
-                
-                <div className="project-detail-item">
-                  <h3 className="project-detail-label">Submission Date</h3>
-                  <p className="project-detail-value">December 15, 2025</p>
-                </div>
-                
-                <div className="project-detail-item">
-                  <h3 className="project-detail-label">Status</h3>
-                  <p className="project-detail-value">Capstone Project</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
-      </section>
 
-      {/* Footer */}
-      <footer className="footer">
-        <div className="container">
-          <div className="footer-content">
-            <div className="footer-column">
-              <h3>DriveSafe</h3>
-              <p>Simple automated Google Drive backup tool for students and educators.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-100">
+                    <Target className="w-7 h-7" />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Project Objectives</h2>
+                <p className="text-gray-500 font-medium leading-relaxed">
+                    Addressing the critical need for automated backup solutions for educators who risk losing important academic files.
+                </p>
+                <div className="space-y-4 pt-4">
+                    {[
+                        { t: "Prevent Data Loss", d: "Protect files from account deactivation." },
+                        { t: "Simplify Backups", d: "One-click solution for complex tasks." },
+                        { t: "Ensure Compliance", d: "Full adherence to RA 10173." }
+                    ].map((obj, i) => (
+                        <div key={i} className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                            <div>
+                                <h4 className="font-bold text-gray-900 text-sm">{obj.t}</h4>
+                                <p className="text-xs text-gray-500 font-medium">{obj.d}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
-            
-            <div className="footer-column">
-              <h4>Project</h4>
-              <p>Version 1.0</p>
-              <p>Capstone Project</p>
-              <p>CIT-U College of Computer Studies</p>
+
+            <div className="bg-white p-10 rounded-[2.5rem] border border-gray-100 shadow-sm space-y-6">
+                <div className="w-14 h-14 bg-amber-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-amber-100">
+                    <ShieldCheck className="w-7 h-7" />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 tracking-tight">Problem Statement</h2>
+                <p className="text-gray-500 font-medium leading-relaxed">
+                    Account deactivation upon graduation leads to significant loss of academic assets accumulated over years.
+                </p>
+                <div className="p-6 bg-indigo-600 rounded-2xl text-white space-y-2 shadow-xl shadow-indigo-100">
+                    <h3 className="font-black text-sm uppercase tracking-widest">Our Solution</h3>
+                    <p className="text-sm font-medium leading-relaxed opacity-90">
+                        DriveSafe automates the entire backup process with enterprise-grade security, ensuring institutional continuity.
+                    </p>
+                </div>
+                <div className="p-6 bg-emerald-50 rounded-2xl border border-emerald-100 space-y-2">
+                    <h3 className="text-emerald-700 font-black text-sm uppercase tracking-widest">The Challenge</h3>
+                    <p className="text-sm text-emerald-800 font-medium leading-relaxed">
+                        Providing a reliable, automated solution that maintains strict security and privacy compliance.
+                    </p>
+                </div>
             </div>
-            
-            <div className="footer-column">
-              <h4>Developed By</h4>
-              <p>Lyrech James E. Laspiñas</p>
-              <p>Louis Drey F. Castañeto</p>
-              <p>John Earl F. Mandawe</p>
-              <p>Clyde Nixon Jumawan</p>
-              <p>Mark Joenylle B. Cortes</p>
-            </div>
-          </div>
-          
-          <div className="footer-bottom">
-            <p>&copy; 2025 DriveSafe. All rights reserved.</p>
-          </div>
         </div>
+
+        <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm space-y-10">
+            <div className="text-center space-y-2">
+                <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Users className="w-7 h-7" />
+                </div>
+                <h2 className="text-3xl font-black text-gray-900 tracking-tight">Development Team</h2>
+                <p className="text-gray-500 font-bold text-xs uppercase tracking-widest">Information Technology • Class of 2025</p>
+            </div>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                {[
+                    "Lyrech James E. Laspiñas", "Louis Drey F. Castañeto", "John Earl F. Mandawe",
+                    "Clyde Nixon Jumawan", "Mark Joenylle B. Cortes"
+                ].map((name, i) => (
+                    <div key={i} className="p-6 bg-gray-50 rounded-2xl text-center border border-gray-100 hover:border-indigo-100 transition-all group">
+                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 font-black border border-gray-100 group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm">
+                            {name.charAt(0)}
+                        </div>
+                        <h4 className="text-xs font-black text-gray-900 leading-tight mb-1">{name}</h4>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Developer</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+
+        <div className="bg-indigo-900 rounded-[3rem] p-10 md:p-16 text-center text-white space-y-8 relative overflow-hidden shadow-2xl shadow-indigo-200">
+            <div className="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+                <Landmark className="w-96 h-96 -ml-20 -mt-20 rotate-12" />
+            </div>
+            <div className="relative space-y-4">
+                <h2 className="text-3xl font-black tracking-tight uppercase">Cebu Institute of Technology University</h2>
+                <p className="text-indigo-200 font-bold text-sm uppercase tracking-[0.2em]">College of Computer Studies</p>
+                <p className="max-w-3xl mx-auto text-lg font-medium opacity-80 leading-relaxed">
+                    Committed to excellence in technology education, CIT-U empowers students to create innovative solutions that address real-world problems.
+                </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative pt-8">
+                {[
+                    { l: "Version", v: "2.0 (2026)" },
+                    { l: "Status", v: "Capstone Project" },
+                    { l: "Institutional", v: "CIT-U / CCS" }
+                ].map((item, i) => (
+                    <div key={i} className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/10">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-1">{item.l}</h4>
+                        <p className="text-xl font-black">{item.v}</p>
+                    </div>
+                ))}
+            </div>
+        </div>
+      </main>
+
+      <footer className="p-10 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest border-t border-gray-100 bg-white">
+        &copy; 2026 DriveSafe &bull; Developed with Passion at CIT-U
       </footer>
     </div>
   );
