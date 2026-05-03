@@ -78,10 +78,8 @@ const FeaturesPage = () => {
       <nav className="bg-white border-b border-gray-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-indigo-600 p-2 rounded-lg flex items-center justify-center">
-              <Logo size={20} />
-            </div>
-            <span className="text-xl font-bold text-gray-900 tracking-tight">DriveSafe</span>
+            <Logo size={32} />
+            <span className="text-xl font-bold text-gray-900 tracking-tight ml-1">DriveSafe</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
             <a href="#" className="hover:text-indigo-600 transition-colors">Home</a>

@@ -169,10 +169,8 @@ const RegistryDashboard: React.FC = () => {
                         </button>
                         <div className="h-6 w-px bg-gray-100"></div>
                         <div className="flex items-center gap-2">
-                            <div className="bg-indigo-600 p-1.5 rounded-lg flex items-center justify-center">
-                                <Logo size={16} />
-                            </div>
-                            <span className="text-lg font-bold text-gray-900 tracking-tight">Registry Pipeline</span>
+                            <Logo size={28} />
+                            <span className="text-lg font-bold text-gray-900 tracking-tight ml-1">Registry Pipeline</span>
                         </div>
                     </div>
 

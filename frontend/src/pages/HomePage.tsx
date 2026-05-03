@@ -22,10 +22,8 @@ const HomePage = () => {
       <nav className="bg-white/70 backdrop-blur-lg border-b border-gray-200/50 sticky top-0 z-50 transition-all">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-2 rounded-lg shadow-md shadow-indigo-200 flex items-center justify-center">
-              <Logo size={20} />
-            </div>
-            <span className="text-xl font-black text-gray-900 tracking-tight">DriveSafe</span>
+            <Logo size={32} />
+            <span className="text-xl font-black text-gray-900 tracking-tight ml-1">DriveSafe</span>
           </div>
           <div className="hidden md:flex items-center gap-8 text-sm font-bold text-gray-500 uppercase tracking-widest">
             <a href="#" className="hover:text-indigo-600 transition-colors">Home</a>

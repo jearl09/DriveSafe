@@ -96,9 +96,7 @@ const ArchivalLedgerPage = () => {
             </button>
             <div className="h-6 w-px bg-gray-200"></div>
             <div className="flex items-center gap-3">
-              <div className="bg-gradient-to-br from-indigo-500 to-indigo-700 p-1.5 rounded-lg shadow-sm flex items-center justify-center">
-                <Logo size={16} />
-              </div>
+              <Logo size={28} />
               <span className="text-lg font-black text-gray-900 tracking-tight">Archival Ledger</span>
             </div>
           </div>
