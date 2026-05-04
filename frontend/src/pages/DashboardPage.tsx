@@ -136,7 +136,7 @@ const DashboardPage: React.FC = () => {
             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-[1.5rem] flex items-center justify-center text-white mb-8 group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-indigo-200/50">
               <LayoutDashboard className="w-10 h-10" />
             </div>
-            <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Registry Pipeline</h3>
+            <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Capstone Archiver</h3>
             <p className="text-gray-500 font-medium mb-10 leading-relaxed text-lg max-w-md">
               Execute archival sequences, validate links, and synchronize local storage with Google Drive.
             </p>
@@ -144,7 +144,7 @@ const DashboardPage: React.FC = () => {
               onClick={() => window.location.hash = "registry-dashboard"}
               className="w-full flex items-center justify-center gap-3 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all shadow-xl shadow-indigo-200 hover:shadow-2xl active:scale-[0.98]"
             >
-              Launch Pipeline <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Launch Archiver <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
 
@@ -155,7 +155,7 @@ const DashboardPage: React.FC = () => {
             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white mb-8 group-hover:scale-110 transition-transform duration-500 shadow-xl shadow-purple-200/50">
               <History className="w-10 h-10" />
             </div>
-            <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Archival Ledger</h3>
+            <h3 className="text-3xl font-black text-gray-900 mb-4 tracking-tighter">Audit Log</h3>
             <p className="text-gray-500 font-medium mb-10 leading-relaxed text-lg max-w-md">
               Access historical records, audit cryptographic signatures, and manage document versioning.
             </p>
@@ -163,7 +163,7 @@ const DashboardPage: React.FC = () => {
               onClick={() => window.location.hash = "backup-history"}
               className="w-full flex items-center justify-center gap-3 py-5 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-2xl font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-[0.98]"
             >
-              Access Ledger <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              Access Audit Log <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>

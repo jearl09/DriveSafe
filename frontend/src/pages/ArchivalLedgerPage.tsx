@@ -97,7 +97,7 @@ const ArchivalLedgerPage = () => {
             <div className="h-6 w-px bg-gray-200"></div>
             <div className="flex items-center gap-3">
               <Logo size={28} />
-              <span className="text-lg font-black text-gray-900 tracking-tight">Archival Ledger</span>
+              <span className="text-lg font-black text-gray-900 tracking-tight">Audit Log</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -230,7 +230,7 @@ const ArchivalLedgerPage = () => {
       </main>
       
       <footer className="mt-auto p-12 text-center text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] bg-white/50 backdrop-blur-md border-t border-gray-200/50">
-        DriveSafe Vault &copy; 2026 &bull; Secure Archival Ledger
+        DriveSafe Vault &copy; 2026 &bull; Secure Audit Log
       </footer>
     </div>
   );
