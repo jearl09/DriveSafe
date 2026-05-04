@@ -30,14 +30,12 @@ class RegistrySheetsService:
         self.scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         
         if user_credentials:
-            # Authenticate using user OAuth token
             self.client = gspread.authorize(user_credentials)
         elif service_account_json_path:
-            # Fallback to Service Account
             self.creds = ServiceAccountCredentials.from_json_keyfile_name(service_account_json_path, self.scope)
             self.client = gspread.authorize(self.creds)
         else:
-            raise ValueError("No authentication method provided (Service Account or User Credentials)")
+            raise ValueError("No authentication method provided")
 
         self.sheet_id = sheet_id
         self.workbook = None
@@ -47,61 +45,97 @@ class RegistrySheetsService:
             except Exception as e:
                 logger.error(f"Failed to open sheet {sheet_id}: {e}")
 
+    def _get_header_map(self, worksheet):
+        """Scan the first row to map column names to their 0-based indices"""
+        headers = [h.strip().lower() for h in worksheet.row_values(1)]
+        mapping = {}
+        
+        # Define keywords to search for in headers
+        keywords = {
+            'project_id': ['project id', 'id', 'team id', 'team_id'],
+            'project_title': ['project title', 'title', 'project_title'],
+            'srs_link': ['srs link', 'srs', 'srs_link'],
+            'sdd_link': ['sdd link', 'sdd', 'sdd_link'],
+            'spmp_link': ['spmp link', 'spmp', 'spmp_link'],
+            'std_link': ['std link', 'std', 'std_link'],
+            'ri_link': ['ri link', 'ri', 'ri_link', 'requirements inventory'],
+            'status': ['status'],
+            'last_updated': ['last updated', 'updated at', 'timestamp'],
+            'srs_path': ['srs path', 'srs_local'],
+            'sdd_path': ['sdd path', 'sdd_local'],
+            'spmp_path': ['spmp path', 'spmp_local'],
+            'std_path': ['std path', 'std_local'],
+            'ri_path': ['ri path', 'ri_local'],
+            'error': ['error', 'message', 'error message']
+        }
+
+        for key, synonyms in keywords.items():
+            for i, header in enumerate(headers):
+                if any(syn in header for synonyms_list in [synonyms] for syn in synonyms_list):
+                    mapping[key] = i
+                    break
+        
+        return mapping
+
     def get_all_projects(self, sheet_name):
-        """Fetch all rows from the sheet regardless of status"""
+        """Fetch all rows using dynamic header mapping"""
         try:
             worksheet = self.workbook.worksheet(sheet_name)
             all_records = worksheet.get_all_values()
-            
-            if not all_records:
-                return []
+            if not all_records: return []
 
+            col_map = self._get_header_map(worksheet)
             projects = []
+            
             for idx, row in enumerate(all_records[1:], start=2):
-                # Ensure row has enough columns
-                if len(row) > COL_STATUS:
-                    project = {
-                        'row_index': idx,
-                        'project_id': row[COL_PROJECT_ID] if len(row) > COL_PROJECT_ID else '',
-                        'project_title': row[COL_PROJECT_TITLE] if len(row) > COL_PROJECT_TITLE else 'Untitled',
-                        'srs_link': row[COL_SRS_LINK] if len(row) > COL_SRS_LINK else '',
-                        'sdd_link': row[COL_SDD_LINK] if len(row) > COL_SDD_LINK else '',
-                        'spmp_link': row[COL_SPMP_LINK] if len(row) > COL_SPMP_LINK else '',
-                        'std_link': row[COL_STD_LINK] if len(row) > COL_STD_LINK else '',
-                        'ri_link': row[COL_RI_LINK] if len(row) > COL_RI_LINK else '',
-                        'status': row[COL_STATUS],
-                        'academic_year': sheet_name
-                    }
-                    projects.append(project)
+                def get_val(key, default=''):
+                    if key in col_map and col_map[key] < len(row):
+                        return row[col_map[key]]
+                    return default
+
+                project = {
+                    'row_index': idx,
+                    'project_id': get_val('project_id'),
+                    'project_title': get_val('project_title', 'Untitled'),
+                    'srs_link': get_val('srs_link'),
+                    'sdd_link': get_val('sdd_link'),
+                    'spmp_link': get_val('spmp_link'),
+                    'std_link': get_val('std_link'),
+                    'ri_link': get_val('ri_link'),
+                    'status': get_val('status', 'Pending'),
+                    'academic_year': sheet_name
+                }
+                projects.append(project)
             return projects
         except Exception as e:
-            print(f"Error fetching projects from {sheet_name}: {e}")
+            logger.error(f"Error fetching projects: {e}")
             raise e
 
-    def update_status(self, sheet_name, row_index, status, srs_path=None, sdd_path=None, spmp_path=None, std_path=None, ri_path=None, error_msg=None):
-        """Update the row with the current status and archival details"""
+    def update_status(self, sheet_name, row_index, status, **kwargs):
+        """Update row details using dynamic column detection"""
         worksheet = self.workbook.worksheet(sheet_name)
+        col_map = self._get_header_map(worksheet)
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Batch update for efficiency
-        # Status (H), Last Updated (I), SRS (J), SDD (K), SPMP (L), STD (M), RI (N), Error (O)
-        # H=8, I=9, J=10, K=11, L=12, M=13, N=14, O=15
+        updates = []
         
-        updates = [
-            {'range': f'H{row_index}', 'values': [[status]]},
-            {'range': f'I{row_index}', 'values': [[timestamp]]}
-        ]
+        def add_update(key, value):
+            if key in col_map and value is not None:
+                col_letter = chr(65 + col_map[key])
+                updates.append({'range': f'{col_letter}{row_index}', 'values': [[value]]})
+
+        add_update('status', status)
+        add_update('last_updated', timestamp)
+        add_update('srs_path', kwargs.get('srs_path'))
+        add_update('sdd_path', kwargs.get('sdd_path'))
+        add_update('spmp_path', kwargs.get('spmp_path'))
+        add_update('std_path', kwargs.get('std_path'))
+        add_update('ri_path', kwargs.get('ri_path'))
+        add_update('error', kwargs.get('error_msg'))
         
-        # Only update paths and error messages if they are not None (to avoid clearing existing ones during 'Unchanged')
-        if srs_path is not None: updates.append({'range': f'J{row_index}', 'values': [[srs_path]]})
-        if sdd_path is not None: updates.append({'range': f'K{row_index}', 'values': [[sdd_path]]})
-        if spmp_path is not None: updates.append({'range': f'L{row_index}', 'values': [[spmp_path]]})
-        if std_path is not None: updates.append({'range': f'M{row_index}', 'values': [[std_path]]})
-        if ri_path is not None: updates.append({'range': f'N{row_index}', 'values': [[ri_path]]})
-        if error_msg is not None: updates.append({'range': f'O{row_index}', 'values': [[error_msg]]})
-        
-        worksheet.batch_update(updates)
-        logger.info(f"Updated row {row_index} in {sheet_name} with status: {status}")
+        if updates:
+            worksheet.batch_update(updates)
+            logger.info(f"Updated row {row_index} dynamically in {sheet_name}")
 
     def get_workbook_name(self):
         """Get the title of the spreadsheet"""

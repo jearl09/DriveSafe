@@ -17,7 +17,7 @@ const Logo: React.FC<LogoProps> = ({ size = 24, className = "" }) => {
       {/* The Logo Image */}
       <div className="relative z-10 w-full h-full rounded-full overflow-hidden border border-white/20 shadow-lg">
         <img 
-          src="/logo.jpg" 
+          src="/logoo.jpg" 
           alt="DriveSafe Logo" 
           className="w-full h-full object-cover"
           onError={(e) => {

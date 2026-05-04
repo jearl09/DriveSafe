@@ -198,11 +198,16 @@ class ArchivalEngine:
             return None
 
     def archive_project(self, project_data, workbook_name="Archives"):
-        project_id = project_data.get('project_id')
-        project_title = project_data.get('project_title', 'Untitled').replace(' ', '_').replace('/', '_')
+        project_id = project_data.get('project_id', 'Unknown')
+        # Clean title and ID for folder naming
+        clean_title = project_data.get('project_title', 'Untitled').replace(' ', '_').replace('/', '_')
+        clean_id = str(project_id).replace(' ', '_').replace('/', '_')
+        
+        # New organized folder name: "Team_1_DriveSafe"
+        folder_name = f"{clean_id}_{clean_title}" if clean_id and clean_id != 'None' else clean_title
         academic_year = project_data.get('academic_year')
         
-        base_project_dir = os.path.join(self.archive_root, workbook_name, project_title)
+        base_project_dir = os.path.join(self.archive_root, workbook_name, folder_name)
         os.makedirs(base_project_dir, exist_ok=True)
         
         # 1. Fetch the LATEST record for this project to compare against
