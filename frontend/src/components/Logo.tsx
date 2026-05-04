@@ -20,10 +20,6 @@ const Logo: React.FC<LogoProps> = ({ size = 24, className = "" }) => {
           src="/logo.jpg" 
           alt="DriveSafe Logo" 
           className="w-full h-full object-cover"
-          onError={(e) => {
-            const target = e.target as HTMLImageElement;
-            target.src = "/logoo.jpg";
-          }}
         />
       </div>
 
