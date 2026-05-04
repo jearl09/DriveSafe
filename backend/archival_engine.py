@@ -223,6 +223,7 @@ class ArchivalEngine:
         total_changed = 0
 
         # 2. Process each document
+        project_title = project_data.get('project_title', 'Untitled')
         for doc_type in doc_types:
             link = project_data.get(f'{doc_type}_link')
             file_id = self._extract_file_id(link)
@@ -316,14 +317,14 @@ class ArchivalEngine:
                         # Use new version number for filename
                         new_version = (last_record.version if last_record else 0) + 1
                         ext = os.path.splitext(actual_temp_path)[1]
-                        final_name = f"{project_title}_{doc_type.upper()}_v{new_version}{ext}"
+                        final_name = f"{clean_title}_{doc_type.upper()}_v{new_version}{ext}"
                         final_path = os.path.join(doc_dir, final_name)
                         
                         # Safety check for file collision
                         v_safe = new_version
                         while os.path.exists(final_path):
                             v_safe += 1
-                            final_path = os.path.join(doc_dir, f"{project_title}_{doc_type.upper()}_v{v_safe}{ext}")
+                            final_path = os.path.join(doc_dir, f"{clean_title}_{doc_type.upper()}_v{v_safe}{ext}")
 
                         os.rename(actual_temp_path, final_path)
                         results[doc_type]['path'] = os.path.relpath(final_path, self.archive_root)
